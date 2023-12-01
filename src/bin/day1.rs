@@ -5,7 +5,7 @@ use std::{
 };
 
 fn main() {
-    let input = BufReader::new(File::open("work.txt").unwrap());
+    let input = BufReader::new(File::open("input/day1").unwrap());
     let lines: Vec<_> = input.lines().flatten().collect();
     let mut part1 = 0;
     let mut part2 = 0;
