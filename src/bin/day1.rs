@@ -1,16 +1,11 @@
-use core::panic;
-use std::{
-    fs::File,
-    io::{BufRead, BufReader},
-};
+use aoc2023::lines;
 
 fn main() {
-    let input = BufReader::new(File::open("input/day1").unwrap());
-    let lines: Vec<_> = input.lines().flatten().collect();
+    let input = lines("input/day1");
     let mut part1 = 0;
     let mut part2 = 0;
 
-    for line in &lines {
+    for line in &input {
         let digits: Vec<_> = line.chars().filter(|c| c.is_ascii_digit()).collect();
         let val = format!("{}{}", digits.first().unwrap(), digits.last().unwrap());
         let val: u32 = val.parse().unwrap();
@@ -19,7 +14,7 @@ fn main() {
 
     dbg!(part1);
 
-    for line in &lines {
+    for line in &input {
         let digits: Vec<_> = find_digits(line);
         let val = format!("{}{}", digits.first().unwrap(), digits.last().unwrap());
         let val: u32 = val.parse().unwrap();
