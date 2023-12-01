@@ -3,6 +3,8 @@ use std::{
     io::{BufRead, BufReader},
 };
 
+pub mod two;
+
 pub fn lines(path: &str) -> Vec<String> {
     let input = BufReader::new(File::open(path).unwrap());
     // Use this rather than flatten, so that we panic if there's an issue rather

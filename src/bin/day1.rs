@@ -1,4 +1,5 @@
-use aoc2023::lines;
+use aoc2023::two::Point;
+use aoc2023::{lines, pt};
 
 fn main() {
     let input = lines("input/day1");
