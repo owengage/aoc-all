@@ -46,9 +46,9 @@ fn part2(input: &[String]) -> usize {
 
     for game in games {
         let mut power = 1;
-        power *= *game.get("red").unwrap_or(&0);
-        power *= *game.get("green").unwrap_or(&0);
-        power *= *game.get("blue").unwrap_or(&0);
+        power *= *game.get("red").unwrap_or(&1);
+        power *= *game.get("green").unwrap_or(&1);
+        power *= *game.get("blue").unwrap_or(&1);
 
         part2 += power;
     }
