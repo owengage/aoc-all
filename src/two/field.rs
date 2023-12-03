@@ -51,6 +51,9 @@ impl<T: Clone> BoundedField<T> {
         }
     }
 
+    /// Return the list of the eight possible neighbours around this point.
+    /// Points outside of the field are not returned. Each value contains the
+    /// neighbout value and the point of that neighbour.
     pub fn eight_neighbours(&self, x: isize, y: isize) -> Vec<(T, Point<isize>)> {
         vec![
             (self.try_get(x - 1, y - 1), Point::new(x - 1, y - 1)),

@@ -1,4 +1,4 @@
-use std::collections::HashMap;
+use std::{collections::HashMap, mem};
 
 use aoc::{
     lines,
@@ -10,10 +10,6 @@ fn main() {
     let engine = BoundedField::<u8>::from_lines(input);
 
     let parts = get_parts(engine);
-
-    // too high 6441017
-    // too low   536993
-    //           539590
     let part1 = parts.iter().map(|(_p, n)| n).sum::<usize>();
     dbg!(part1);
 
@@ -49,48 +45,35 @@ fn get_parts(engine: BoundedField<u8>) -> Vec<(Part, usize)> {
     for y in 0..engine.height {
         let mut current_number = String::new();
 
-        for x in 0..engine.width {
-            let c = engine.get(x, y);
-            match c {
-                c if c.is_ascii_digit() => current_number.push(c as char),
-                _ => {
-                    if !current_number.is_empty() {
-                        let n: usize = current_number.parse().unwrap();
-                        let nlen = current_number.len();
-                        current_number.clear();
-
-                        // what symbol are we near, if any?
-                        'outer: for i in (x - nlen as isize)..x {
-                            for (neighbour, p) in engine.eight_neighbours(i, y) {
-                                if !neighbour.is_ascii_digit() && neighbour != b'.' {
-                                    let symbol = neighbour as char;
-                                    parts.push((Part { symbol, p }, n));
-                                    break 'outer;
-                                }
-                            }
-                        }
-                    }
-                } // _symbol => {
-                  //     // we're a symbol.
-                  // }
+        let mut process_end = |current_number: &mut String, x_end: isize| {
+            if current_number.is_empty() {
+                return;
             }
-        }
-        if !current_number.is_empty() {
-            let n: usize = current_number.parse().unwrap();
-            let nlen = current_number.len();
-            current_number.clear();
+
+            let x_start = x_end - current_number.len() as isize;
+            let n: usize = mem::take(current_number).parse().unwrap();
 
             // what symbol are we near, if any?
-            'outer: for i in (engine.width - nlen as isize)..engine.width {
+            for i in x_start..x_end {
                 for (neighbour, p) in engine.eight_neighbours(i, y) {
                     if !neighbour.is_ascii_digit() && neighbour != b'.' {
                         let symbol = neighbour as char;
                         parts.push((Part { symbol, p }, n));
-                        break 'outer;
+                        return;
                     }
                 }
             }
+        };
+
+        for x in 0..engine.width {
+            let c = engine.get(x, y);
+            if c.is_ascii_digit() {
+                current_number.push(c as char)
+            } else {
+                process_end(&mut current_number, x);
+            }
         }
+        process_end(&mut current_number, engine.width);
     }
 
     parts
@@ -108,9 +91,7 @@ mod test {
         let engine = BoundedField::<u8>::from_lines(input);
 
         let parts = get_parts(engine);
-        let mut total = 0;
         for part in parts {
-            total += part.1;
             println!("{:?}: {}", part.0, part.1);
         }
     }
@@ -125,9 +106,7 @@ mod test {
         let engine = BoundedField::<u8>::from_lines(input);
 
         let parts = get_parts(engine);
-        let mut total = 0;
         for part in parts {
-            total += part.1;
             println!("{:?}: {}", part.0, part.1);
         }
     }
@@ -142,9 +121,7 @@ mod test {
         let engine = BoundedField::<u8>::from_lines(input);
 
         let parts = get_parts(engine);
-        let mut total = 0;
         for part in parts {
-            total += part.1;
             println!("{:?}: {}", part.0, part.1);
         }
     }
