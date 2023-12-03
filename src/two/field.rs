@@ -54,20 +54,20 @@ impl<T: Clone> BoundedField<T> {
     /// Return the list of the eight possible neighbours around this point.
     /// Points outside of the field are not returned. Each value contains the
     /// neighbout value and the point of that neighbour.
-    pub fn eight_neighbours(&self, x: isize, y: isize) -> Vec<(T, Point<isize>)> {
-        vec![
-            (self.try_get(x - 1, y - 1), Point::new(x - 1, y - 1)),
-            (self.try_get(x, y - 1), Point::new(x, y - 1)),
-            (self.try_get(x + 1, y - 1), Point::new(x + 1, y - 1)),
-            (self.try_get(x - 1, y + 1), Point::new(x - 1, y + 1)),
-            (self.try_get(x, y + 1), Point::new(x, y + 1)),
-            (self.try_get(x + 1, y + 1), Point::new(x + 1, y + 1)),
-            (self.try_get(x - 1, y), Point::new(x - 1, y)),
-            (self.try_get(x + 1, y), Point::new(x + 1, y)),
+    pub fn eight_neighbours(&self, x: isize, y: isize) -> impl Iterator<Item = (T, Point<isize>)> {
+        let p = |x, y| (self.try_get(x, y), Point::new(x, y));
+        [
+            p(x - 1, y - 1),
+            p(x, y - 1),
+            p(x + 1, y - 1),
+            p(x - 1, y),
+            p(x + 1, y),
+            p(x - 1, y + 1),
+            p(x, y + 1),
+            p(x + 1, y + 1),
         ]
         .into_iter()
         .filter_map(|(nei, p)| nei.map(|nei| (nei, p)))
-        .collect()
     }
 }
 
