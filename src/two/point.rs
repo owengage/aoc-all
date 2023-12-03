@@ -8,7 +8,7 @@ pub trait Num:
 impl Num for isize {}
 impl Num for f64 {}
 
-#[derive(Debug, PartialEq, Clone, Copy)]
+#[derive(Debug, PartialEq, Clone, Copy, Eq, Hash)]
 pub struct Point<T> {
     x: T,
     y: T,

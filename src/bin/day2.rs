@@ -1,4 +1,4 @@
-use aoc2023::lines;
+use aoc::lines;
 use std::collections::HashMap;
 
 type Game = HashMap<String, usize>;
@@ -74,7 +74,7 @@ fn parse_game(line: &str) -> Game {
 #[cfg(test)]
 mod test {
     use crate::*;
-    use aoc2023::lines_from_str;
+    use aoc::lines_from_str;
 
     #[test]
     fn test_parse_game() {
