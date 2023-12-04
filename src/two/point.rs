@@ -14,11 +14,8 @@ pub struct Point<T> {
     y: T,
 }
 
-#[macro_export]
-macro_rules! pt {
-    ($x:expr, $y:expr) => {
-        Point::new($x, $y)
-    };
+pub fn pt<T: Num>(x: T, y: T) -> Point<T> {
+    Point::new(x, y)
 }
 
 impl<T: Num> Point<T> {
@@ -98,18 +95,18 @@ mod test {
 
     #[test]
     fn ops() {
-        let p1 = pt!(1, 2);
-        let p2 = pt!(4, 5);
-        assert_eq!(p1 + p2, pt!(5, 7));
-        assert_eq!(p1 - p2, pt!(-3, -3));
-        assert_eq!(p1 * 2, pt!(2, 4));
-        assert_eq!(2 * p1, pt!(2, 4));
+        let p1 = pt(1, 2);
+        let p2 = pt(4, 5);
+        assert_eq!(p1 + p2, pt(5, 7));
+        assert_eq!(p1 - p2, pt(-3, -3));
+        assert_eq!(p1 * 2, pt(2, 4));
+        assert_eq!(2 * p1, pt(2, 4));
 
-        let pt3 = pt!(1.0, 2.0);
-        assert_eq!(pt3 * 0.5, pt!(0.5, 1.0));
-        assert_eq!(0.5 * pt3, pt!(0.5, 1.0));
+        let pt3 = pt(1.0, 2.0);
+        assert_eq!(pt3 * 0.5, pt(0.5, 1.0));
+        assert_eq!(0.5 * pt3, pt(0.5, 1.0));
 
-        assert_eq!(pt!(3, 4).norm(), 5.0);
-        assert_eq!(pt!(4.0, 3.0).norm(), 5.0);
+        assert_eq!(pt(3, 4).norm(), 5.0);
+        assert_eq!(pt(4.0, 3.0).norm(), 5.0);
     }
 }

@@ -1,12 +1,8 @@
-// Not clear what this file should have. There are so many different 2D fields.
-// * They can be a known or unknown size.
-// * They could start at 0,0 or also have negative indicies.
-// * They could be unbounded.
-// * They could be dense or sparse.
-// * They could wrap around in various ways (doughnut, cube!).
-
 use crate::two::Point;
 
+/// A dense 2D field of cells. Has methods to get and mutate cells as if it was
+/// bounded, or an infinite toriodal surface. Allows getting neighbors for
+/// different topologies too.
 pub struct DenseField<T> {
     pub width: isize,
     pub height: isize,
@@ -65,7 +61,7 @@ impl<T> DenseField<T> {
     /// Return the list of the eight possible neighbours around this point.
     /// Points outside of the field are not returned. Each value contains the
     /// neighbout value and the point of that neighbour.
-    pub fn neighbours8_euclid(
+    pub fn neighbours8_bounded(
         &self,
         x: isize,
         y: isize,
@@ -132,10 +128,7 @@ impl<T: From<u8>> DenseField<T> {
 
 #[cfg(test)]
 mod test {
-    use crate::{
-        pt,
-        two::{DenseField, Point},
-    };
+    use crate::two::{pt, DenseField};
     use std::collections::HashSet;
 
     #[test]
@@ -146,15 +139,15 @@ mod test {
     #[test]
     fn wrapping() {
         let field = DenseField::new(10, 10, 0);
-        assert_eq!(field.wrapping_get(11, 12).1, pt!(1, 2));
-        assert_eq!(field.wrapping_get(101, 12).1, pt!(1, 2));
-        assert_eq!(field.wrapping_get(-2, -3).1, pt!(8, 7)); // 0 -> 0, -1 -> 9...
-        assert_eq!(field.wrapping_get(-12, -103).1, pt!(8, 7));
+        assert_eq!(field.wrapping_get(11, 12).1, pt(1, 2));
+        assert_eq!(field.wrapping_get(101, 12).1, pt(1, 2));
+        assert_eq!(field.wrapping_get(-2, -3).1, pt(8, 7)); // 0 -> 0, -1 -> 9...
+        assert_eq!(field.wrapping_get(-12, -103).1, pt(8, 7));
 
         let neighbours: HashSet<_> = field.neighbours8_torus(9, 5).map(|t| t.1).collect();
-        assert!(neighbours.contains(&pt!(8, 5)));
-        assert!(neighbours.contains(&pt!(0, 5)));
-        assert!(neighbours.contains(&pt!(0, 6)));
+        assert!(neighbours.contains(&pt(8, 5)));
+        assert!(neighbours.contains(&pt(0, 5)));
+        assert!(neighbours.contains(&pt(0, 6)));
     }
 
     #[test]

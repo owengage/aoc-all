@@ -55,7 +55,7 @@ fn get_parts(engine: DenseField<u8>) -> Vec<(Part, usize)> {
 
             // what symbol are we near, if any?
             for i in x_start..x_end {
-                for (neighbour, p) in engine.neighbours8_euclid(i, y) {
+                for (neighbour, p) in engine.neighbours8_bounded(i, y) {
                     if !neighbour.is_ascii_digit() && *neighbour != b'.' {
                         let symbol = *neighbour as char;
                         parts.push((Part { symbol, p }, n));
