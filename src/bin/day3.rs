@@ -2,12 +2,12 @@ use std::{collections::HashMap, mem};
 
 use aoc::{
     lines,
-    two::{BoundedField, Point},
+    two::{DenseField, Point},
 };
 
 fn main() {
     let input = lines("input/work3");
-    let engine = BoundedField::<u8>::from_lines(input);
+    let engine = DenseField::from_lines(input);
 
     let parts = get_parts(engine);
     let part1 = parts.iter().map(|(_p, n)| n).sum::<usize>();
@@ -39,7 +39,7 @@ struct Part {
     p: Point<isize>,
 }
 
-fn get_parts(engine: BoundedField<u8>) -> Vec<(Part, usize)> {
+fn get_parts(engine: DenseField<u8>) -> Vec<(Part, usize)> {
     let mut parts = vec![];
 
     for y in 0..engine.height {
@@ -55,9 +55,9 @@ fn get_parts(engine: BoundedField<u8>) -> Vec<(Part, usize)> {
 
             // what symbol are we near, if any?
             for i in x_start..x_end {
-                for (neighbour, p) in engine.eight_neighbours(i, y) {
-                    if !neighbour.is_ascii_digit() && neighbour != b'.' {
-                        let symbol = neighbour as char;
+                for (neighbour, p) in engine.neighbours8_euclid(i, y) {
+                    if !neighbour.is_ascii_digit() && *neighbour != b'.' {
+                        let symbol = *neighbour as char;
                         parts.push((Part { symbol, p }, n));
                         return;
                     }
@@ -68,7 +68,7 @@ fn get_parts(engine: BoundedField<u8>) -> Vec<(Part, usize)> {
         for x in 0..engine.width {
             let c = engine.get(x, y);
             if c.is_ascii_digit() {
-                current_number.push(c as char)
+                current_number.push(*c as char)
             } else {
                 process_end(&mut current_number, x);
             }
@@ -81,14 +81,14 @@ fn get_parts(engine: BoundedField<u8>) -> Vec<(Part, usize)> {
 
 #[cfg(test)]
 mod test {
-    use aoc::{lines_from_str, two::BoundedField};
+    use aoc::{lines_from_str, two::DenseField};
 
     use crate::get_parts;
 
     #[test]
     fn test_sep_by_symbol() {
         let input = lines_from_str(r#"..100*300..."#);
-        let engine = BoundedField::<u8>::from_lines(input);
+        let engine = DenseField::<u8>::from_lines(input);
 
         let parts = get_parts(engine);
         for part in parts {
@@ -103,7 +103,7 @@ mod test {
 ...500......
 ......*....."#,
         );
-        let engine = BoundedField::<u8>::from_lines(input);
+        let engine = DenseField::<u8>::from_lines(input);
 
         let parts = get_parts(engine);
         for part in parts {
@@ -118,7 +118,7 @@ mod test {
 ..........50
 ......*....*"#,
         );
-        let engine = BoundedField::<u8>::from_lines(input);
+        let engine = DenseField::<u8>::from_lines(input);
 
         let parts = get_parts(engine);
         for part in parts {
@@ -140,7 +140,7 @@ mod test {
 ...$.*....
 .664.598.."#,
         );
-        let engine = BoundedField::<u8>::from_lines(input);
+        let engine = DenseField::<u8>::from_lines(input);
 
         let parts = get_parts(engine);
         let mut total = 0;
