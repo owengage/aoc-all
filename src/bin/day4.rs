@@ -7,17 +7,11 @@ fn main() {
 
     let win_counts: Vec<usize> = games
         .iter()
-        .filter_map(|g| {
-            let count = g.target.iter().filter(|t| g.options.contains(t)).count();
-            if count > 0 {
-                Some(count)
-            } else {
-                None
-            }
-        })
+        .filter_map(|g| (g.win_count > 0).then_some(g.win_count))
         .collect();
+
     let part1: usize = win_counts.iter().map(|c| 2usize.pow(*c as u32 - 1)).sum();
-    println!("{part1:?}");
+    dbg!(part1);
 
     for i in 0..games.len() {
         let win_count = games[i].win_count;
@@ -33,8 +27,6 @@ fn main() {
 
 #[derive(Debug)]
 struct Game {
-    target: Vec<usize>,
-    options: HashSet<usize>,
     instances: usize,
     win_count: usize,
 }
@@ -42,25 +34,19 @@ struct Game {
 fn parse_game(line: String) -> Game {
     let (_, rest) = line.split_once(':').unwrap();
     let (target, options) = rest.split_once('|').unwrap();
-    let mut game = Game {
+    let target: Vec<usize> = target
+        .split_whitespace()
+        .map(|s| s.parse().unwrap())
+        .collect();
+    let options: HashSet<usize> = options
+        .split_whitespace()
+        .map(|s| s.parse().unwrap())
+        .collect();
+
+    let win_count = target.iter().filter(|&t| options.contains(t)).count();
+
+    Game {
+        win_count,
         instances: 1,
-        win_count: 0,
-        target: target
-            .split_whitespace()
-            .map(|s| s.parse().unwrap())
-            .collect(),
-        options: options
-            .split_whitespace()
-            .map(|s| s.parse().unwrap())
-            .collect(),
-    };
-
-    let count = game
-        .target
-        .iter()
-        .filter(|t| game.options.contains(t))
-        .count();
-
-    game.win_count = count;
-    game
+    }
 }
