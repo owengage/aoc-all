@@ -1,6 +1,7 @@
 use std::{
     fs::File,
     io::{BufRead, BufReader, Read},
+    mem,
 };
 
 pub mod two;
@@ -11,6 +12,26 @@ pub fn lines(path: &str) -> Vec<String> {
     // than mask the error.
     let lines: Result<Vec<String>, _> = input.lines().collect();
     lines.unwrap()
+}
+
+pub fn line_blocks(path: &str) -> Vec<Vec<String>> {
+    let input = lines(path);
+    let mut blocks = vec![];
+    let mut current = vec![];
+
+    for line in input {
+        if line.is_empty() {
+            let block = mem::take(&mut current);
+            blocks.push(block);
+        } else {
+            current.push(line);
+        }
+    }
+    if !current.is_empty() {
+        blocks.push(current);
+    }
+
+    blocks
 }
 
 pub fn lines_from_str(input: &str) -> Vec<String> {
