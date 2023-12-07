@@ -8,53 +8,61 @@ fn main() {
     let mut hands = parse_hands(&input, Card::new);
     hands.sort_by(|a, b| compare_hands(a, b, |h| primary_rank_part1(hand_counts(h))));
 
-    let part1: usize = hands
-        .iter()
-        .enumerate()
-        .map(|(i, h)| {
-            let rank = i + 1;
-            rank * h.bet
-        })
-        .sum();
+    let part1 = score(hands);
 
     dbg!(part1);
 
     let mut hands2 = parse_hands(&input, Card::new_part2);
     hands2.sort_by(|a, b| compare_hands(a, b, |h| primary_rank_part2(hand_counts(h))));
 
-    let part2: usize = hands2
+    let part2: usize = score(hands2);
+
+    dbg!(part2);
+}
+
+fn score(hands: Vec<Hand>) -> usize {
+    hands
         .iter()
         .enumerate()
         .map(|(i, h)| {
             let rank = i + 1;
             rank * h.bet
         })
-        .sum();
-
-    dbg!(part2);
+        .sum()
 }
 
-fn primary_rank_part2(mut counts: HashMap<Card, usize>) -> usize {
+#[derive(Debug, PartialEq, Eq, PartialOrd, Ord, Clone, Copy)]
+enum Prime {
+    Highest,
+    Pair,
+    TwoPair,
+    ThreeOfKind,
+    FullHouse,
+    FourOfKind,
+    FiveOfKind,
+}
+
+fn primary_rank_part2(mut counts: HashMap<Card, usize>) -> Prime {
     let jokers = counts.remove(&Card(JOKER_VALUE_PART2)).unwrap_or(0);
     let three_of_kind = counts.values().any(|c| *c == 3);
     let kinds = counts.len();
 
     if jokers == 5 || jokers == 4 || kinds == 1 {
         // 5 of a kind
-        return 6;
+        return Prime::FiveOfKind;
     }
 
     if jokers == 3 {
         match kinds {
-            2 => return 5, // 4kind, 1,1 + 3 jokers
+            2 => return Prime::FourOfKind, // 4kind, 1,1 + 3 jokers
             _ => panic!(),
         }
     }
 
     if jokers == 2 {
         match kinds {
-            2 => return 5, // 4kind: 2,1 + 2j
-            3 => return 3, // 3kind: 1,1,1. 2j
+            2 => return Prime::FourOfKind,  // 4kind: 2,1 + 2j
+            3 => return Prime::ThreeOfKind, // 3kind: 1,1,1. 2j
             _ => panic!(),
         }
     }
@@ -63,13 +71,13 @@ fn primary_rank_part2(mut counts: HashMap<Card, usize>) -> usize {
         match kinds {
             2 => {
                 return if three_of_kind {
-                    5 // 3,1 + j
+                    Prime::FourOfKind // 3,1 + j
                 } else {
-                    4 // 2,2 + j full house
+                    Prime::FullHouse // 2,2 + j full house
                 };
             }
-            3 => return 3, // 3 kind? 2,1,1 + 1joker
-            4 => return 1, // 1 pair, 1,1,1,1 + joker
+            3 => return Prime::ThreeOfKind, // 3 kind? 2,1,1 + 1joker
+            4 => return Prime::Pair,        // 1 pair, 1,1,1,1 + joker
             _ => panic!(),
         }
     }
@@ -78,21 +86,21 @@ fn primary_rank_part2(mut counts: HashMap<Card, usize>) -> usize {
         match kinds {
             2 => {
                 return if three_of_kind {
-                    4 // 3,2
+                    Prime::FullHouse // 3,2
                 } else {
-                    5 // 4,1
+                    Prime::FourOfKind // 4,1
                 };
             } // 4,1 or 3,2
             // 3 kind? 2,2,1 or 3,1,1
             3 => {
                 return if three_of_kind {
-                    3 // 3,1,1
+                    Prime::ThreeOfKind // 3,1,1
                 } else {
-                    2 // 2,2,1 two pair
+                    Prime::TwoPair // 2,2,1 two pair
                 };
             }
-            4 => return 1, // 1 pair, 2,1,1,1
-            5 => return 0,
+            4 => return Prime::Pair, // 1 pair, 2,1,1,1
+            5 => return Prime::Highest,
             _ => panic!(),
         }
     }
@@ -100,7 +108,7 @@ fn primary_rank_part2(mut counts: HashMap<Card, usize>) -> usize {
     panic!()
 }
 
-fn compare_hands(left: &Hand, right: &Hand, rank_fn: fn(&Hand) -> usize) -> Ordering {
+fn compare_hands(left: &Hand, right: &Hand, rank_fn: fn(&Hand) -> Prime) -> Ordering {
     let leftr = rank_fn(left);
     let rightr = rank_fn(right);
 
@@ -116,36 +124,36 @@ fn compare_hands(left: &Hand, right: &Hand, rank_fn: fn(&Hand) -> usize) -> Orde
     })
 }
 
-fn primary_rank_part1(counts: HashMap<Card, usize>) -> usize {
+fn primary_rank_part1(counts: HashMap<Card, usize>) -> Prime {
     if counts.values().any(|v| *v == 5) {
-        return 6;
+        return Prime::FiveOfKind;
     }
 
     if counts.values().any(|v| *v == 4) {
-        return 5;
+        return Prime::FourOfKind;
     }
 
     if counts.len() == 2 && counts.values().all(|v| *v == 3 || *v == 2) {
         // full house
-        return 4;
+        return Prime::FullHouse;
     }
 
     if counts.values().any(|v| *v == 3) {
         // three of a kind
-        return 3;
+        return Prime::ThreeOfKind;
     }
 
     let pairs = counts.values().filter(|v| **v == 2).count();
 
     if pairs == 2 {
-        return 2;
+        return Prime::TwoPair;
     }
 
     if pairs == 1 {
-        return 1;
+        return Prime::Pair;
     }
 
-    0
+    Prime::Highest
 }
 
 fn hand_counts(h: &Hand) -> HashMap<Card, usize> {
@@ -216,29 +224,13 @@ mod test {
         let mut hands = parse_hands(&input, Card::new);
         hands.sort_by(|a, b| compare_hands(a, b, |h| primary_rank_part1(hand_counts(h))));
 
-        let part1: usize = hands
-            .iter()
-            .enumerate()
-            .map(|(i, h)| {
-                let rank = i + 1;
-                rank * h.bet
-            })
-            .sum();
-
+        let part1: usize = score(hands);
         assert_eq!(249748283, part1);
 
         let mut hands2 = parse_hands(&input, Card::new_part2);
         hands2.sort_by(|a, b| compare_hands(a, b, |h| primary_rank_part2(hand_counts(h))));
 
-        let part2: usize = hands2
-            .iter()
-            .enumerate()
-            .map(|(i, h)| {
-                let rank = i + 1;
-                rank * h.bet
-            })
-            .sum();
-
+        let part2: usize = score(hands2);
         assert_eq!(248029057, part2);
     }
 }
