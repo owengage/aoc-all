@@ -1,6 +1,6 @@
 use std::{
     fs::File,
-    io::{BufRead, BufReader, Read},
+    io::{BufRead, BufReader},
     mem,
 };
 
@@ -14,6 +14,7 @@ pub fn lines(path: &str) -> Vec<String> {
     lines.unwrap()
 }
 
+/// Parse input as blocks of lines, each block should be separated be a blank line.
 pub fn line_blocks(path: &str) -> Vec<Vec<String>> {
     let input = lines(path);
     let mut blocks = vec![];

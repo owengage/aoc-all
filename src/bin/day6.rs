@@ -49,16 +49,18 @@ fn hold_times(race: Race) -> [usize; 2] {
     [hs[0].ceil() as usize, hs[1].floor() as usize]
 }
 
+/// Solve the quadratic formula. Always returns ordered from smallest to largest.
 fn quads(a: f64, b: f64, c: f64) -> [f64; 2] {
+    // a neg, b pos, c neg
     let root = (b * b - 4.0 * a * c).sqrt();
     assert!(!root.is_nan());
-    let x1 = (-b - root) / (2.0 * a);
-    let x2 = (-b + root) / (2.0 * a);
+    let x1 = (-b + root) / (2.0 * a);
+    let x2 = (-b - root) / (2.0 * a);
 
-    let mut res = [x1, x2];
-    // Feel like the sort might be unnecessary?
-    res.sort_by(|a, b| a.partial_cmp(b).unwrap());
-    res
+    // For our particular problem we know the sorted order. If this was more
+    // general we'd have to sort/not assume lesser/greater.
+    assert!(x1 <= x2);
+    [x1, x2]
 }
 
 #[derive(Debug, Clone, Copy)]
