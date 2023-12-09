@@ -22,12 +22,13 @@ fn predict_next(hist: Vec<isize>) -> isize {
 
     loop {
         let last = levels.last().unwrap();
-        let next = last.windows(2).map(|win| win[1] - win[0]).collect();
-        levels.push(next);
+        let next: Vec<isize> = last.windows(2).map(|win| win[1] - win[0]).collect();
 
-        if levels.last().unwrap().iter().all(|n| *n == 0) {
+        if next.iter().all(|n| *n == 0) {
             break;
         }
+
+        levels.push(next);
     }
 
     // now bubble up
