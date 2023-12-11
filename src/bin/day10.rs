@@ -42,10 +42,6 @@ fn main() {
     let (visited, part1) = part1(field.clone(), start);
     dbg!(part1);
 
-    // Part 2, just go across horizontally each row. If we have the 'down' pipe then flip
-    // whether we're in or or out of the loop. For each line, start 'out' of the
-    // loop, if we see a down pip toggle that. If the cell isn't part of the
-    // loop and it's 'in' then we count it.
     let part2 = part2(start, field, visited);
     dbg!(part2); // 395 work too high
 }
@@ -55,8 +51,15 @@ fn part2(
     mut field: DenseField<Cell>,
     visited: HashSet<Point<isize>>,
 ) -> usize {
+    // Part 2, just go across horizontally each row. If we have the 'down' pipe then flip
+    // whether we're in or or out of the loop. For each line, start 'out' of the
+    // loop, if we see a down pip toggle that. If the cell isn't part of the
+    // loop and it's 'in' then we count it.
     let mut area = 0;
 
+    // The start pipe is all-connected and therefore can have a down connection
+    // that is not actually part of the loop. This breaks our counting, so we
+    // convert the pipe into it's 'proper' connected form for the loop.
     fix_start_pipe(&mut field, start);
 
     for y in 0..field.height {
