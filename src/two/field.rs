@@ -3,6 +3,7 @@ use crate::two::Point;
 /// A dense 2D field of cells. Has methods to get and mutate cells as if it was
 /// bounded, or an infinite toriodal surface. Allows getting neighbors for
 /// different topologies too.
+#[derive(Debug, Clone)]
 pub struct DenseField<T> {
     pub width: isize,
     pub height: isize,
@@ -18,6 +19,21 @@ impl<T: Clone> DenseField<T> {
             height,
             data: vec![val; (width * height).try_into().unwrap()],
         }
+    }
+
+    pub fn find(&self, val: &T) -> Option<Point<isize>>
+    where
+        T: PartialEq,
+    {
+        for y in 0..self.height {
+            for x in 0..self.width {
+                if *val == *self.get(x, y) {
+                    return Some(Point::new(x, y));
+                }
+            }
+        }
+
+        None
     }
 }
 

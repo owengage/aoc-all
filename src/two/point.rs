@@ -10,8 +10,8 @@ impl Num for f64 {}
 
 #[derive(Debug, PartialEq, Clone, Copy, Eq, Hash)]
 pub struct Point<T> {
-    x: T,
-    y: T,
+    pub x: T,
+    pub y: T,
 }
 
 pub fn pt<T: Num>(x: T, y: T) -> Point<T> {
