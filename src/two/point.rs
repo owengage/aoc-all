@@ -32,6 +32,12 @@ impl Point<isize> {
     pub fn norm(&self) -> f64 {
         (self.norm_squared() as f64).sqrt()
     }
+
+    // Absolute distance between two points, only along the x and y directions.
+    // The way a taxi would drive in Manhatten's grid.
+    pub fn taxicab_dist(&self, p: Self) -> usize {
+        self.x.abs_diff(p.x) + self.y.abs_diff(p.y)
+    }
 }
 
 impl Point<f64> {

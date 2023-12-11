@@ -113,26 +113,20 @@ struct RangeMap {
     source: String,
     dest: String,
     ranges: Vec<Range>,
-    points: Vec<Pos>,
 }
 
 #[derive(Debug)]
 struct Pos {
     i: usize,
-    shift: isize,
 }
 
 impl RangeMap {
     fn new(source: &str, dest: &str, ranges: Vec<Range>) -> RangeMap {
         let mut points = vec![];
         for r in &ranges {
-            points.push(Pos {
-                i: r.source_start,
-                shift: r.dest_start as isize - r.source_start as isize,
-            });
+            points.push(Pos { i: r.source_start });
             points.push(Pos {
                 i: r.source_start + r.len,
-                shift: 0,
             });
         }
 
@@ -142,7 +136,6 @@ impl RangeMap {
             source: source.to_string(),
             dest: dest.to_string(),
             ranges,
-            points,
         }
     }
 
@@ -155,61 +148,5 @@ impl RangeMap {
         }
 
         id
-    }
-
-    fn get_ranges(&self, start: usize, len: usize) -> Vec<(usize, usize)> {
-        // CBA to actually write this right now, but this is how I'd solve it.
-        //
-        // We've taken all the ranges and flattened them into a vec of indexes
-        // along with the 'shift' that would be applied to any indicies beyond
-        // that point. So the range 10..20 +50 becomes [(10,+50), (20, +0)].
-        //
-        // We can find the greatest index lower than the one we're interested
-        // in, and that tells us the shift we'd need to apply to that index to
-        // map it. So for 15, 10 is the highest index below 15, so the shift we
-        // apply to 15 would be +50. If we picked 25 the shift is +0. This
-        // encodes equivalent information as the original ranges.
-        //
-        // To actually map a range of values, we take the start point, find the
-        // greatest lesser index to find our shift. We look at the next index to
-        // get the end of the first range that will be produced, and apply the
-        // shift.
-        //
-        // Repeat this until either the end of the range is met, or we run out
-        // of points. Taking care to handle the last range.
-        //
-        // We then return those ranges. binary_search will actually give us the
-        // index where we could insert the value, which is equivalent to the
-        // highest index less than our value.
-
-        todo!()
-    }
-}
-
-#[cfg(test)]
-mod tests {
-    use crate::{Range, RangeMap};
-
-    #[test]
-    fn test_apply_range() {
-        // Map 10-20 to 100-110
-        let m = RangeMap::new(
-            "",
-            "",
-            vec![
-                Range {
-                    source_start: 10,
-                    dest_start: 100,
-                    len: 10,
-                },
-                Range {
-                    source_start: 30,
-                    dest_start: 100,
-                    len: 10,
-                },
-            ],
-        );
-
-        // assert_eq!(1, m.get_ranges(0, 5).len()); // 0..5
     }
 }

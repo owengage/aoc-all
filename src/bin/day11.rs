@@ -1,9 +1,10 @@
-use std::collections::{HashMap, HashSet};
+use std::collections::HashMap;
 
 use aoc::{
     lines,
     two::{pt, Point},
 };
+use itertools::Itertools;
 
 fn main() {
     let input = lines("input/day11");
@@ -15,44 +16,21 @@ fn main() {
 }
 
 fn sum_distances(galaxies: Vec<Point<isize>>, expand_factor: isize) -> usize {
-    // Count the empty row/cols up to each point.
     let xs: Vec<_> = galaxies.iter().map(|p| p.x).collect();
     let ys: Vec<_> = galaxies.iter().map(|p| p.y).collect();
     let xguide = expand_guide(xs, expand_factor);
     let yguide = expand_guide(ys, expand_factor);
 
-    let galaxies: Vec<_> = galaxies
-        .into_iter()
-        .map(|p| pt(xguide[&p.x], yguide[&p.y]))
-        .collect();
+    // Crazy iterator type!
+    let galaxies = galaxies.into_iter().map(|p| pt(xguide[&p.x], yguide[&p.y]));
+    let pairs = galaxies.combinations(2);
+    let distances = pairs.map(|p| p[0].taxicab_dist(p[1]));
 
-    // Now we need to find the distance between each galaxy pair.
-    let pairs = {
-        let mut ps = HashSet::new();
-        for &p1 in &galaxies {
-            for &p2 in &galaxies {
-                if p1 == p2 {
-                    continue;
-                }
-                if p1 < p2 {
-                    ps.insert((p1, p2));
-                } else {
-                    ps.insert((p2, p1));
-                }
-            }
-        }
-
-        ps
-    };
-
-    let distances: Vec<_> = pairs
-        .iter()
-        .map(|(g1, g2)| (g2.x.abs_diff(g1.x) + g2.y.abs_diff(g1.y)))
-        .collect();
-
-    distances.iter().sum()
+    distances.sum()
 }
 
+/// Given the galaxies along one dimension, tells you how to map each coordinate
+/// to the expanded coordinate.
 fn expand_guide(mut xs: Vec<isize>, expand_factor: isize) -> HashMap<isize, isize> {
     xs.sort();
     let mut expand_guide = HashMap::<isize, isize>::new();
@@ -94,6 +72,16 @@ mod test {
     use crate::*;
 
     #[test]
+    fn answers() {
+        let input = lines("input/day11");
+        let galaxies = get_galaxies(input);
+        let part1 = sum_distances(galaxies.clone(), 2);
+        let part2 = sum_distances(galaxies.clone(), 1000000);
+        assert_eq!(9957702, part1);
+        assert_eq!(512240933238, part2);
+    }
+
+    #[test]
     fn test_expand() {
         let guide = expand_guide(vec![3, 6, 8], 2);
         assert_eq!(0, guide[&3isize]);
@@ -105,7 +93,7 @@ mod test {
     fn test_dist() {
         let input = lines_from_str(r#"...#..#..."#);
         let galaxies = get_galaxies(input);
-        let part1 = sum_distances(galaxies.clone());
+        let part1 = sum_distances(galaxies.clone(), 2);
         assert_eq!(part1, 5);
     }
 
@@ -124,7 +112,7 @@ mod test {
 #...#....."#,
         );
         let galaxies = get_galaxies(input);
-        let part1 = sum_distances(galaxies.clone());
+        let part1 = sum_distances(galaxies.clone(), 2);
         assert_eq!(part1, 374);
     }
 
@@ -132,7 +120,7 @@ mod test {
     fn test_dist2() {
         let input = lines_from_str(r#"...#..#...#"#);
         let galaxies = get_galaxies(input);
-        let part1 = sum_distances(galaxies.clone());
+        let part1 = sum_distances(galaxies.clone(), 2);
         assert_eq!(part1, 5 + 7 + 12);
     }
 
@@ -147,7 +135,7 @@ mod test {
 ...#"#,
         );
         let galaxies = get_galaxies(input);
-        let part1 = sum_distances(galaxies.clone());
+        let part1 = sum_distances(galaxies.clone(), 2);
         assert_eq!(part1, 3 + 3 + 6);
     }
 
@@ -159,7 +147,7 @@ mod test {
 ....#....."#,
         );
         let galaxies = get_galaxies(input);
-        let part1 = sum_distances(galaxies.clone());
+        let part1 = sum_distances(galaxies.clone(), 2);
         assert_eq!(part1, 2);
     }
 
@@ -172,7 +160,7 @@ mod test {
 ....#....."#,
         );
         let galaxies = get_galaxies(input);
-        let part1 = sum_distances(galaxies.clone());
+        let part1 = sum_distances(galaxies.clone(), 2);
         assert_eq!(part1, 4);
     }
 
@@ -185,7 +173,7 @@ mod test {
 ......#..."#,
         );
         let galaxies = get_galaxies(input);
-        let part1 = sum_distances(galaxies.clone());
+        let part1 = sum_distances(galaxies.clone(), 2);
         assert_eq!(part1, 8);
     }
 }
