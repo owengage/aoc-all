@@ -39,7 +39,6 @@ fn part2(mut field: DenseField<Cell>) -> usize {
         if let Some(seen_before) = seen.insert(field.clone(), cycle) {
             if !jumped {
                 jumped = true;
-                println!("Found loop at cycle {cycle}");
 
                 // We've seen this field before!
                 // We can now jump close to the final cycle.

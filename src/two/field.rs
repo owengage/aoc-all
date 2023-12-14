@@ -172,7 +172,7 @@ impl<T: From<u8>> DenseField<T> {
 #[cfg(test)]
 mod test {
     use crate::two::{pt, DenseField};
-    use std::collections::HashSet;
+    use std::{collections::HashSet, mem};
 
     #[test]
     fn make() {
@@ -205,5 +205,35 @@ mod test {
         }
         let field = DenseField::from_lines(vec!["aaa".to_string()]);
         let _c: &Cell = field.get(0, 0);
+    }
+
+    #[test]
+    fn rotate() {
+        pub fn naive_clockwise_rotate(field: &mut DenseField<isize>) {
+            let old = field.clone();
+            mem::swap(&mut field.width, &mut field.height);
+
+            for oldy in 0..old.height {
+                for oldx in 0..old.width {
+                    *field.get_mut(old.height - oldy - 1, oldx) = *old.get(oldx, oldy);
+                }
+            }
+        }
+
+        let mut field = DenseField::<isize>::new(12, 32, 0);
+        let mut i = 0;
+        for y in 0..32 {
+            for x in 0..12 {
+                i += 1;
+                *field.get_mut(x, y) = i;
+            }
+        }
+
+        let mut expected = field.clone();
+        let mut actual = field;
+        naive_clockwise_rotate(&mut expected);
+        actual.rotate_clockwise();
+
+        assert_eq!(expected, actual);
     }
 }
