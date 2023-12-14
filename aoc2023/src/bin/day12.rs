@@ -1,7 +1,6 @@
-use std::{collections::VecDeque, sync::atomic::AtomicI32, thread::current};
+use std::{collections::VecDeque, sync::atomic::AtomicI32};
 
 use aoc::lines;
-use rayon::iter::{IntoParallelRefIterator, ParallelIterator};
 
 fn main() {
     // ???.### 1,1,3 - 1 arrangement
@@ -170,7 +169,7 @@ fn compl_block(field: &[char], spec: &[usize]) -> usize {
     let mut blocks = vec![];
     let mut last_block_unknown = false;
 
-    for (i, &spring) in field.iter().enumerate() {
+    for (_i, &spring) in field.iter().enumerate() {
         if spring == '?' {
             last_block_unknown = true;
             break;

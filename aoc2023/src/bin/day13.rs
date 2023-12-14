@@ -1,6 +1,6 @@
 use core::panic;
 
-use aoc::{line_blocks, lines};
+use aoc::line_blocks;
 use itertools::Itertools;
 
 fn main() {
@@ -171,7 +171,7 @@ fn find_row_reflection(pattern: &[String]) -> Option<usize> {
 
 #[cfg(test)]
 mod test {
-    use aoc::{line_blocks, lines_from_str};
+    use aoc::line_blocks;
 
     use crate::*;
 
