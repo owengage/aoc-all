@@ -1,4 +1,4 @@
-use std::collections::VecDeque;
+use std::{collections::VecDeque, sync::atomic::AtomicI32, thread::current};
 
 use aoc::lines;
 use rayon::iter::{IntoParallelRefIterator, ParallelIterator};
@@ -42,10 +42,20 @@ fn main() {
 }
 
 fn count_all_arrangements(arrs: Vec<(Vec<char>, Vec<usize>)>) -> usize {
+    let done = AtomicI32::new(0);
+
     arrs.iter()
         .map(|(field, spec)| {
+            println!("Doing: {:?}, {:?}", field, spec);
             let count = possible_arrangements(field, spec);
-            println!("Done ({count}): {:?}, {:?}", field, spec);
+            done.fetch_add(1, std::sync::atomic::Ordering::SeqCst);
+
+            println!(
+                "Done {} ({count}): {:?}, {:?}",
+                done.load(std::sync::atomic::Ordering::SeqCst),
+                field,
+                spec
+            );
             count
         })
         .sum()
@@ -227,16 +237,22 @@ fn matches_spec_partial(field: &[char], spec: &[usize]) -> bool {
     // Idea: Ones that are already complete according to spec. Doesn't seem to
     // make much difference.
 
-    // That last block might be larger than the spec'd block.
-    if found_unknown && block_len > 0 {
-        let next_in_spec = spec.get(blocks.len());
-        if next_in_spec.is_some() && block_len > *next_in_spec.unwrap() {
-            return false;
-        }
+    // // That last block might be larger than the spec'd block.
+    // if found_unknown && block_len > 0 {
+    //     let next_in_spec = spec.get(blocks.len());
+    //     if next_in_spec.is_some() && block_len > *next_in_spec.unwrap() {
+    //         return false;
+    //     }
 
-        if next_in_spec.is_none() {
-            return false;
-        }
+    //     if next_in_spec.is_none() {
+    //         return false;
+    //     }
+    // }
+
+    // Can we possibly fit the remaining blocks? If not no point exploring the
+    // branch.
+    if !could_fit(field, spec) {
+        return false;
     }
 
     // How many unknowns do we still need in order to be able to fit things in?
@@ -291,6 +307,43 @@ fn find_unknown(field: &[char]) -> Option<usize> {
     None
 }
 
+fn could_fit(field: &[char], mut spec: &[usize]) -> bool {
+    let mut i = 0;
+    loop {
+        let Some(&s) = spec.first() else {
+            // Ran out of spec, must fit!
+            return true;
+        };
+
+        let Some(slice) = &field.get(i..i + s) else {
+            // Don't have enough string left to fit the block!
+            return false;
+        };
+
+        if slice.iter().all(|&c| c == '#' || c == '?') {
+            // block fits
+            // Either we're at the end of the string, or the next character must
+            // be ? or .
+            if let Some(&dot) = field.get(i + s) {
+                if dot == '#' {
+                    // would make us part of another block, we don't fit!
+                    i += 1;
+                    continue;
+                }
+                i += slice.len() + 1;
+            } else {
+                // end of string.
+                i += slice.len();
+            }
+
+            spec = &spec[1..];
+        } else {
+            // Doesn't fit, let's move one over.
+            i += 1;
+        }
+    }
+}
+
 #[cfg(test)]
 mod test {
 
@@ -298,6 +351,22 @@ mod test {
 
     use crate::*;
 
+    #[test]
+    fn fit() {
+        assert!(could_fit(&['?'], &[1]));
+        assert!(could_fit(&['.', '.', '?'], &[1]));
+        assert!(could_fit(&['.', '.', '?', '?'], &[2]));
+        assert!(could_fit(&['.', '?', '.', '?', '?'], &[2]));
+        assert!(could_fit(&['.', '?', '.', '#', '?'], &[2]));
+        assert!(could_fit(&['.', '?', '.', '#', '#'], &[2]));
+        assert!(could_fit(&['.', '?', '.', '#', '#'], &[1, 2]));
+        assert!(could_fit(&['.', '?', '.', '#', '#', '?', '?'], &[1, 2, 1]));
+
+        assert!(!could_fit(&['.', '?', '.', '#', '#', '?'], &[1, 2, 1]));
+        assert!(!could_fit(&['?', '.', '?', '?'], &[2, 1]));
+        assert!(!could_fit(&['.', '.', '?'], &[2]));
+        assert!(!could_fit(&['.'], &[1]));
+    }
     #[test]
     fn ans() {
         let input = lines("input/work12");

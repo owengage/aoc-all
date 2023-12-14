@@ -1,9 +1,14 @@
+use std::{
+    fmt::{Debug, Display},
+    mem,
+};
+
 use crate::two::Point;
 
 /// A dense 2D field of cells. Has methods to get and mutate cells as if it was
 /// bounded, or an infinite toriodal surface. Allows getting neighbors for
 /// different topologies too.
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Hash, PartialEq, Eq)]
 pub struct DenseField<T> {
     pub width: isize,
     pub height: isize,
@@ -34,6 +39,28 @@ impl<T: Clone> DenseField<T> {
         }
 
         None
+    }
+
+    pub fn rotate_clockwise(&mut self) {
+        let old = self.clone();
+        mem::swap(&mut self.width, &mut self.height);
+
+        for oldy in 0..old.height {
+            for oldx in 0..old.width {
+                *self.get_mut(old.height - oldy - 1, oldx) = old.get(oldx, oldy).clone();
+            }
+        }
+    }
+}
+
+impl<T: Display> DenseField<T> {
+    pub fn debug_print(&self) {
+        for y in 0..self.height {
+            for x in 0..self.width {
+                print!("{}", self.get(x, y))
+            }
+            println!()
+        }
     }
 }
 
