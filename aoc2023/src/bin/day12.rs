@@ -1,3 +1,4 @@
+use core::panic;
 use std::{collections::VecDeque, sync::atomic::AtomicI32};
 
 use aoc::lines;
@@ -10,13 +11,27 @@ fn main() {
     // ????.######..#####. 1,6,5 - 4 arrangements
     // ?###???????? 3,2,1 - 10 arrangements
 
+    // Alternative idea:
+    //
+    // We use recursion rather than a queue. The stack is only ever going to be
+    // about 100 deep since that's the maximum length of an input.
+    //
+    // But also to memoise the tails that we see. Maybe for all input, maybe for
+    // each. The recursion function is then working only on the tails. This is
+    // made easier by only ever adding full blocks including the dividing dot.
+    // This measn the function just accepts the remaining input and the
+    // remaining specification.
+
     // Max field size is only 20 characters.
-    let input = lines("input/work12");
+    let input = lines("aoc2023/input/work12");
+
     let arrs: Vec<_> = input.iter().map(|s| parse_line(s)).collect();
+    let part1: usize = arrs
+        .iter()
+        .map(|(f, sp)| count_tail_arrangements(f, sp))
+        .sum();
 
-    let part1 = count_all_arrangements(arrs.clone());
-
-    let arrs: Vec<_> = arrs
+    let long_arrs: Vec<_> = arrs
         .into_iter()
         .map(|(f, s)| {
             let s_len = s.len();
@@ -34,10 +49,141 @@ fn main() {
             (f, s)
         })
         .collect();
-    let part2 = count_all_arrangements(arrs.clone());
+
+    let part2: usize = long_arrs
+        .iter()
+        .enumerate()
+        .map(|(i, (f, sp))| {
+            println!("Doing {i}");
+            let count = count_tail_arrangements(f, sp);
+            println!("Done {i}");
+            count
+        })
+        .sum();
 
     dbg!(part1);
     dbg!(part2);
+}
+
+fn count_tail_arrangements(tail: &[char], spec: &[usize]) -> usize {
+    let (matches, tail, spec) = skip_known(tail, spec);
+    if !matches {
+        return 0;
+    }
+
+    if tail.is_empty() && spec.is_empty() {
+        return 1;
+    }
+
+    let mut total = 0;
+
+    // Can we place the next block here?
+    let mut tail_block = tail.to_vec();
+    let mut tail_dot = tail.to_vec();
+
+    if !spec.is_empty() {
+        let placed = place_block(&mut tail_block, spec[0]);
+
+        if placed {
+            let Some(new_tail) = tail_block.get(spec[0] + 1..) else {
+                // we must have completed the entire tail.
+                if matches_spec(&tail_block, spec) {
+                    return 1;
+                } else {
+                    return 0;
+                }
+            };
+
+            total += count_tail_arrangements(new_tail, &spec[1..]);
+        }
+    }
+
+    // Can we place a dot?
+    total += match tail_dot.first() {
+        Some('#') => 0,
+        Some('.' | '?') => {
+            tail_dot[0] = '.';
+            count_tail_arrangements(&tail_dot[1..], spec)
+        }
+        None => 0,
+        _ => panic!(),
+    };
+
+    total
+}
+
+fn skip_known<'t, 's>(tail: &'t [char], mut spec: &'s [usize]) -> (bool, &'t [char], &'s [usize]) {
+    let mut current_block = 0;
+    let mut last_complete_block = 0;
+
+    for i in 0..tail.len() {
+        match tail[i] {
+            '#' => {
+                current_block += 1;
+            }
+            '.' => {
+                if current_block != 0 {
+                    if spec.is_empty() {
+                        return (false, tail, spec);
+                    }
+                    if spec[0] != current_block {
+                        // we don't match the spec!
+                        return (false, tail, spec);
+                    } else {
+                        // Complete this block.
+                        // What happens if this is the end of a block, we return
+                        // the tail ##.?, we return .? rather than just ?
+                        spec = &spec[1..];
+                        last_complete_block = i + 1; // include the dot.
+                        current_block = 0;
+                    }
+                }
+            }
+            '?' => return (true, &tail[last_complete_block..], spec),
+            _ => panic!(),
+        }
+    }
+
+    if current_block != 0 {
+        if spec.is_empty() {
+            return (false, tail, spec);
+        }
+        if spec[0] != current_block {
+            // we don't match the spec!
+            (false, tail, spec)
+        } else {
+            spec = &spec[1..];
+            (true, &tail[tail.len()..], spec)
+        }
+    } else {
+        (true, &tail[last_complete_block..], spec)
+    }
+}
+
+// Try to place the given block immediately. Return true is successful.
+fn place_block(tail: &mut [char], block: usize) -> bool {
+    for i in 0..block {
+        match tail.get(i) {
+            Some('#' | '?') => {
+                tail[i] = '#';
+            }
+            Some('.') => return false,
+            None => return false,
+            _ => panic!(),
+        }
+    }
+
+    // Now need to place last dot to finish block.
+    match tail.get(block) {
+        Some('#') => false,
+        Some('.') => true,
+        Some('?') => {
+            tail[block] = '.';
+            true
+        }
+        None => true,
+        _ => panic!(),
+    }
 }
 
 fn count_all_arrangements(arrs: Vec<(Vec<char>, Vec<usize>)>) -> usize {
@@ -366,11 +512,72 @@ mod test {
         assert!(!could_fit(&['.', '.', '?'], &[2]));
         assert!(!could_fit(&['.'], &[1]));
     }
+
+    #[test]
+    fn new_way() {
+        assert_eq!(1, count_tail_arrangements(&['?', '.', '#'], &[1, 1]));
+        assert_eq!(1, count_tail_arrangements(&['?', '?', '#'], &[1, 1]));
+        assert_eq!(1, count_tail_arrangements(&['?', '?', '?'], &[1, 1]));
+        assert_eq!(2, count_tail_arrangements(&['?', '?', '?'], &[2]));
+        assert_eq!(2, count_tail_arrangements(&['?', '#', '?'], &[2]));
+        assert_eq!(
+            3,
+            count_tail_arrangements(&['?', '?', '#', '#', '?', '?'], &[4])
+        );
+
+        assert_eq!(
+            5,
+            count_tail_arrangements(
+                &[
+                    '?', '?', '?', '?', '?', '?', '?', '#', '#', '?', '?', '?', '?', '?', '#', '?',
+                    '#', '?'
+                ],
+                &[9, 6]
+            )
+        );
+
+        assert_eq!(
+            4,
+            count_tail_arrangements(&"????.######..#####.".chars().collect_vec(), &[1, 6, 5])
+        );
+        assert_eq!(
+            10,
+            count_tail_arrangements(&"?###????????".chars().collect_vec(), &[3, 2, 1])
+        );
+        assert_eq!(
+            1,
+            count_tail_arrangements(&"?#?#?#?#?#?#?#?".chars().collect_vec(), &[1, 3, 1, 6])
+        );
+        assert_eq!(
+            4,
+            count_tail_arrangements(&"??????#.??".chars().collect_vec(), &[2, 2]) // ??????#.??
+                                                                                  // ##...##...
+                                                                                  // .##..##...
+                                                                                  // ..##.##...
+                                                                                  // .....##.##
+        );
+    }
+
+    #[test]
+    fn fuzz() {
+        let field = "##.??.....????####???##?".chars().collect_vec();
+        let spec = &[2, 2, 5];
+        let expected = possible_arrangements(&field, spec);
+        let actual = count_tail_arrangements(&field, spec);
+        assert_eq!(expected, actual);
+        // Try example input.
+    }
+
     #[test]
     fn ans() {
         let input = lines("input/work12");
         let arrs: Vec<_> = input.iter().map(|s| parse_line(s)).collect();
-        assert_eq!(7857, count_all_arrangements(arrs));
+        let ans: usize = arrs
+            .iter()
+            .map(|(f, sp)| count_tail_arrangements(f, sp))
+            .sum();
+
+        assert_eq!(7857, ans);
     }
 
     #[test]
