@@ -14,12 +14,12 @@ pub struct Point<T> {
     pub y: T,
 }
 
-pub fn pt<T: Num>(x: T, y: T) -> Point<T> {
+pub const fn pt<T: Num>(x: T, y: T) -> Point<T> {
     Point::new(x, y)
 }
 
 impl<T: Num> Point<T> {
-    pub fn new(x: T, y: T) -> Self {
+    pub const fn new(x: T, y: T) -> Self {
         Self { x, y }
     }
 

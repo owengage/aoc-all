@@ -76,11 +76,3 @@ fn hash(input: &str) -> u64 {
 
     current
 }
-
-#[cfg(test)]
-mod test {
-    use aoc::lines_from_str;
-
-    #[test]
-    fn test_parse() {}
-}

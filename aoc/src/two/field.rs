@@ -26,6 +26,7 @@ impl<T: Clone> DenseField<T> {
         }
     }
 
+    /// Brute force find a given value in the field.
     pub fn find(&self, val: &T) -> Option<Point<isize>>
     where
         T: PartialEq,
@@ -41,6 +42,8 @@ impl<T: Clone> DenseField<T> {
         None
     }
 
+    /// Rotate the field by 90 degrees clockwise. This obviously flips the
+    /// height and width if they're different. Not an efficient operation.
     pub fn rotate_clockwise(&mut self) {
         let old = self.clone();
         mem::swap(&mut self.width, &mut self.height);
@@ -93,6 +96,7 @@ impl<T> DenseField<T> {
         }
     }
 
+    /// `get` but x and y are wrapped around like a torus.
     pub fn wrapping_get(&self, x: isize, y: isize) -> (&T, Point<isize>) {
         let x = x % self.width;
         let x = if x < 0 { self.width + x } else { x };
