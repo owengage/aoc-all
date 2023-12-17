@@ -177,7 +177,7 @@ mod test {
 
     #[test]
     fn test_parse() {
-        let patterns = line_blocks("input/day12-example");
+        let patterns = line_blocks("test-input/day12-example");
 
         assert_eq!(405, part1(&patterns));
         assert_eq!(400, part2(&patterns));

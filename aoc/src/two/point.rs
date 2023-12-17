@@ -1,5 +1,7 @@
 use std::ops::{Add, Mul, Neg, Sub};
 
+pub type IPoint = Point<isize>;
+
 pub trait Num:
     Copy + Add<Self, Output = Self> + Sub<Self, Output = Self> + Mul<Self, Output = Self>
 {
@@ -8,10 +10,10 @@ pub trait Num:
 impl Num for isize {}
 impl Num for f64 {}
 
-pub const LEFT: Point<isize> = pt(-1, 0);
-pub const RIGHT: Point<isize> = pt(1, 0);
-pub const UP: Point<isize> = pt(0, -1);
-pub const DOWN: Point<isize> = pt(0, 1);
+pub const LEFT: IPoint = pt(-1, 0);
+pub const RIGHT: IPoint = pt(1, 0);
+pub const UP: IPoint = pt(0, -1);
+pub const DOWN: IPoint = pt(0, 1);
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub enum Dirn {
@@ -150,5 +152,7 @@ mod test {
 
         assert_eq!(pt(3, 4).norm(), 5.0);
         assert_eq!(pt(4.0, 3.0).norm(), 5.0);
+
+        assert_eq!(-pt(4, 3), pt(-4, -3));
     }
 }

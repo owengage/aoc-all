@@ -62,10 +62,9 @@ fn part2(
     // convert the pipe into it's 'proper' connected form for the loop.
     fix_start_pipe(&mut field, start);
 
-    for y in 0..field.height {
+    for y in 0..field.height() {
         let mut in_loop = false;
-
-        for x in 0..field.width {
+        for x in 0..field.width() {
             let cell = field.get(x, y);
             let cell_in_loop = visited.contains(&pt(x, y));
             if cell_in_loop && cell.pipe.down() {

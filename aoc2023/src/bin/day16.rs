@@ -34,14 +34,14 @@ fn main() {
 fn part2(field: &DenseField<Cell>) -> usize {
     let mut max_energize = 0;
 
-    for y in 0..field.height {
+    for y in 0..field.height() {
         max_energize = max_energize.max(energize(field, pt(0, y), Dirn::Right));
-        max_energize = max_energize.max(energize(field, pt(field.width - 1, y), Dirn::Left));
+        max_energize = max_energize.max(energize(field, pt(field.width() - 1, y), Dirn::Left));
     }
 
-    for x in 0..field.width {
+    for x in 0..field.width() {
         max_energize = max_energize.max(energize(field, pt(x, 0), Dirn::Down));
-        max_energize = max_energize.max(energize(field, pt(x, field.height - 1), Dirn::Up));
+        max_energize = max_energize.max(energize(field, pt(x, field.height() - 1), Dirn::Up));
     }
 
     max_energize

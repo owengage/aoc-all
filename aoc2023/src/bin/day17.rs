@@ -5,22 +5,16 @@ use aoc::{
     two::{pt, DenseField, Dirn, Point},
 };
 
-#[derive(Debug, Clone, Copy)]
-struct Cell(usize);
-
-impl From<u8> for Cell {
-    fn from(value: u8) -> Self {
-        match value {
-            b'0'..=b'9' => Cell((value as char).to_digit(10).unwrap() as usize),
-            _ => panic!(),
-        }
+fn conv(value: u8) -> usize {
+    match value {
+        b'0'..=b'9' => (value as char).to_digit(10).unwrap() as usize,
+        _ => panic!(),
     }
 }
 
 fn main() {
-    // let input = lines("input/day17");
     let input = lines("aoc2023/input/day17");
-    let field = DenseField::<Cell>::from_lines(input);
+    let field = DenseField::from_lines_with(input, conv);
 
     let part1 = search(&field, 0, 3);
     let part2 = search(&field, 4, 10);
@@ -28,7 +22,7 @@ fn main() {
     dbg!(part2);
 }
 
-fn search(field: &DenseField<Cell>, min: u32, max: u32) -> usize {
+fn search(field: &DenseField<usize>, min: u32, max: u32) -> usize {
     let mut q = VecDeque::new();
     let mut seen = HashMap::<(Point<isize>, Point<isize>, u32), usize>::new();
 
@@ -54,7 +48,7 @@ fn search(field: &DenseField<Cell>, min: u32, max: u32) -> usize {
 
         seen.insert((p, dir, momentum), loss);
 
-        if p == pt(field.width - 1, field.height - 1) && momentum >= min {
+        if p == pt(field.width() - 1, field.height() - 1) && momentum >= min {
             min_loss_at_exit = min_loss_at_exit.min(loss);
             continue;
         }
@@ -70,7 +64,7 @@ fn search(field: &DenseField<Cell>, min: u32, max: u32) -> usize {
             let next_p = p + next_dir;
             let next_loss = loss
                 + if let Some(cell) = field.try_get(next_p.x, next_p.y) {
-                    cell.0
+                    cell
                 } else {
                     continue; // this isn't on the field.
                 };

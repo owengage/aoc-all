@@ -65,11 +65,9 @@ fn part2(mut field: DenseField<Cell>) -> usize {
 fn north_support_load(field: &DenseField<Cell>) -> usize {
     let mut load = 0usize;
 
-    for y in 0..field.height {
-        for x in 0..field.width {
-            if let Cell::RoundRock = field.get(x, y) {
-                load += (field.height - y) as usize;
-            }
+    for p in field.points() {
+        if let Cell::RoundRock = field.get(p.x, p.y) {
+            load += (field.height() - p.y) as usize;
         }
     }
 
@@ -79,8 +77,8 @@ fn north_support_load(field: &DenseField<Cell>) -> usize {
 fn roll_north(field: &mut DenseField<Cell>) {
     // For each row starting from the north (y=0) move rounded rocks until they
     // hit something, or the top.
-    for y in 0..field.height {
-        for x in 0..field.width {
+    for y in 0..field.height() {
+        for x in 0..field.width() {
             match field.get(x, y) {
                 Cell::RoundRock => {
                     // go down from y to 0 here as much as we can.

@@ -5,14 +5,16 @@ use std::{
 
 use crate::two::Point;
 
+use super::{pt, IPoint};
+
 /// A dense 2D field of cells. Has methods to get and mutate cells as if it was
 /// bounded, or an infinite toriodal surface. Allows getting neighbors for
 /// different topologies too.
 #[derive(Debug, Clone, Hash, PartialEq, Eq)]
 pub struct DenseField<T> {
-    pub width: isize,
-    pub height: isize,
-    pub data: Vec<T>,
+    width: isize,
+    height: isize,
+    data: Vec<T>,
 }
 
 impl<T: Clone> DenseField<T> {
@@ -24,6 +26,14 @@ impl<T: Clone> DenseField<T> {
             height,
             data: vec![val; (width * height).try_into().unwrap()],
         }
+    }
+
+    pub fn width(&self) -> isize {
+        self.width
+    }
+
+    pub fn height(&self) -> isize {
+        self.height
     }
 
     /// Brute force find a given value in the field.
@@ -148,12 +158,24 @@ impl<T> DenseField<T> {
         ]
         .into_iter()
     }
+
+    pub fn points(&self) -> PointsIter {
+        PointsIter {
+            width: self.width,
+            height: self.height,
+            current: 0,
+        }
+    }
 }
 
 impl<T: From<u8>> DenseField<T> {
     /// Create a field from line input. All lines must be the same length. You
     /// can implement From<u8> for T in order to have more complex starting types.
     pub fn from_lines(lines: Vec<String>) -> Self {
+        Self::from_lines_with(lines, T::from)
+    }
+
+    pub fn from_lines_with(lines: Vec<String>, f: fn(u8) -> T) -> Self {
         let width = lines[0].len() as isize;
         let height = lines.len() as isize;
 
@@ -163,12 +185,33 @@ impl<T: From<u8>> DenseField<T> {
 
         let data = lines.join("");
         assert!(data.is_ascii());
-        let data = data.into_bytes().into_iter().map(T::from).collect();
+        let data = data.into_bytes().into_iter().map(f).collect();
 
         DenseField {
             width,
             height,
             data,
+        }
+    }
+}
+
+#[derive(Debug)]
+pub struct PointsIter {
+    width: isize,
+    height: isize,
+    current: isize,
+}
+
+impl Iterator for PointsIter {
+    type Item = IPoint;
+
+    fn next(&mut self) -> Option<Self::Item> {
+        if self.current == self.width * self.height {
+            None
+        } else {
+            let p = pt(self.current % self.width, self.current / self.width);
+            self.current += 1;
+            Some(p)
         }
     }
 }
@@ -239,5 +282,17 @@ mod test {
         actual.rotate_clockwise();
 
         assert_eq!(expected, actual);
+    }
+
+    #[test]
+    fn point_iter() {
+        let mut ps = vec![];
+        for y in 0..10 {
+            for x in 0..5 {
+                ps.push(pt(x, y));
+            }
+        }
+
+        assert!(ps.into_iter().eq(DenseField::new(5, 10, 0).points()));
     }
 }

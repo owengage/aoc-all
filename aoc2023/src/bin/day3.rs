@@ -42,7 +42,7 @@ struct Part {
 fn get_parts(engine: DenseField<u8>) -> Vec<(Part, usize)> {
     let mut parts = vec![];
 
-    for y in 0..engine.height {
+    for y in 0..engine.height() {
         let mut current_number = String::new();
 
         let mut process_end = |current_number: &mut String, x_end: isize| {
@@ -65,7 +65,7 @@ fn get_parts(engine: DenseField<u8>) -> Vec<(Part, usize)> {
             }
         };
 
-        for x in 0..engine.width {
+        for x in 0..engine.width() {
             let c = engine.get(x, y);
             if c.is_ascii_digit() {
                 current_number.push(*c as char)
@@ -73,7 +73,7 @@ fn get_parts(engine: DenseField<u8>) -> Vec<(Part, usize)> {
                 process_end(&mut current_number, x);
             }
         }
-        process_end(&mut current_number, engine.width);
+        process_end(&mut current_number, engine.width());
     }
 
     parts
