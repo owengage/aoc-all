@@ -1,4 +1,4 @@
-use std::ops::{Add, Mul, Sub};
+use std::ops::{Add, Mul, Neg, Sub};
 
 pub trait Num:
     Copy + Add<Self, Output = Self> + Sub<Self, Output = Self> + Mul<Self, Output = Self>
@@ -7,6 +7,34 @@ pub trait Num:
 
 impl Num for isize {}
 impl Num for f64 {}
+
+pub const LEFT: Point<isize> = pt(-1, 0);
+pub const RIGHT: Point<isize> = pt(1, 0);
+pub const UP: Point<isize> = pt(0, -1);
+pub const DOWN: Point<isize> = pt(0, 1);
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+pub enum Dirn {
+    Right,
+    Left,
+    Up,
+    Down,
+}
+
+impl Dirn {
+    pub fn as_point(self) -> Point<isize> {
+        match self {
+            Dirn::Right => RIGHT,
+            Dirn::Left => LEFT,
+            Dirn::Up => UP,
+            Dirn::Down => DOWN,
+        }
+    }
+
+    pub fn all() -> [Point<isize>; 4] {
+        [LEFT, RIGHT, UP, DOWN]
+    }
+}
 
 #[derive(Debug, PartialEq, Clone, Copy, Eq, Hash, PartialOrd)]
 pub struct Point<T> {
@@ -84,6 +112,14 @@ impl Mul<Point<isize>> for isize {
 
     fn mul(self, rhs: Point<isize>) -> Self::Output {
         rhs * self
+    }
+}
+
+impl Neg for Point<isize> {
+    type Output = Point<isize>;
+
+    fn neg(self) -> Self::Output {
+        -1 * self
     }
 }
 

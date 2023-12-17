@@ -3,7 +3,7 @@ use std::collections::{HashSet, VecDeque};
 
 use aoc::{
     lines,
-    two::{pt, DenseField, Point},
+    two::{pt, DenseField, Dirn, Point, DOWN, LEFT, RIGHT, UP},
 };
 
 #[derive(Debug, Clone, Copy)]
@@ -13,14 +13,6 @@ enum Cell {
     SplitVert,
     SplitHorz,
     Empty,
-}
-
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
-enum Dirn {
-    Right,
-    Left,
-    Up,
-    Down,
 }
 
 fn main() {
@@ -54,11 +46,6 @@ fn part2(field: &DenseField<Cell>) -> usize {
 
     max_energize
 }
-
-const LEFT: Point<isize> = pt(-1, 0);
-const RIGHT: Point<isize> = pt(1, 0);
-const UP: Point<isize> = pt(0, -1);
-const DOWN: Point<isize> = pt(0, 1);
 
 fn energize(field: &DenseField<Cell>, start: Point<isize>, dirn: Dirn) -> usize {
     let mut q = VecDeque::new();
