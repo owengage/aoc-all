@@ -2,7 +2,7 @@ use std::collections::{HashMap, VecDeque};
 
 use aoc::{
     lines,
-    two::{pt, DenseField, Dirn, Point},
+    two::{pt, DenseField, Dirn, Point, DOWN, RIGHT},
 };
 
 fn conv(value: u8) -> usize {
@@ -29,8 +29,8 @@ fn search(field: &DenseField<usize>, min: u32, max: u32) -> usize {
     let mut min_loss_at_exit = usize::MAX;
 
     // Start top left, no momentum.
-    q.push_back((pt(0, 0), Dirn::Right.as_point(), 0, 0_usize));
-    q.push_back((pt(0, 0), Dirn::Down.as_point(), 0, 0_usize));
+    q.push_back((pt(0, 0), RIGHT, 0, 0_usize));
+    q.push_back((pt(0, 0), DOWN, 0, 0_usize));
 
     while let Some((p, dir, momentum, loss)) = q.pop_back() {
         if let Some(&prev_loss) = seen.get(&(p, dir, momentum)) {

@@ -1,9 +1,16 @@
-use std::ops::{Add, Mul, Neg, Sub};
+use std::{
+    ops::{Add, AddAssign, Mul, Neg, Sub},
+    process::Output,
+};
 
 pub type IPoint = Point<isize>;
 
 pub trait Num:
-    Copy + Add<Self, Output = Self> + Sub<Self, Output = Self> + Mul<Self, Output = Self>
+    Copy
+    + Add<Self, Output = Self>
+    + AddAssign<Self>
+    + Sub<Self, Output = Self>
+    + Mul<Self, Output = Self>
 {
 }
 
@@ -35,6 +42,16 @@ impl Dirn {
 
     pub fn all() -> [Point<isize>; 4] {
         [LEFT, RIGHT, UP, DOWN]
+    }
+
+    pub fn from_letter(s: &str) -> Dirn {
+        match s {
+            "R" => Dirn::Right,
+            "L" => Dirn::Left,
+            "U" => Dirn::Up,
+            "D" => Dirn::Down,
+            _ => panic!("unknown direction letter: {s}"),
+        }
     }
 }
 
@@ -84,6 +101,12 @@ impl<T: Num> Add<Point<T>> for Point<T> {
             x: self.x + rhs.x,
             y: self.y + rhs.y,
         }
+    }
+}
+
+impl<T: Num> AddAssign<Point<T>> for Point<T> {
+    fn add_assign(&mut self, rhs: Point<T>) {
+        *self = *self + rhs;
     }
 }
 
