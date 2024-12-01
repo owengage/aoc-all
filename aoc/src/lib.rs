@@ -42,3 +42,16 @@ pub fn lines_from_str(input: &str) -> Vec<String> {
     let lines: Result<Vec<String>, _> = input.lines().collect();
     lines.unwrap()
 }
+
+pub trait StrExt {
+    fn strip_brackets(&self, left: char, right: char) -> Option<Self>
+    where
+        Self: Sized;
+}
+
+impl StrExt for &str {
+    fn strip_brackets(&self, left: char, right: char) -> Option<Self> {
+        let s = self.strip_prefix(left)?;
+        s.strip_suffix(right)
+    }
+}

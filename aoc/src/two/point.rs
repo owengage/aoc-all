@@ -1,7 +1,4 @@
-use std::{
-    ops::{Add, AddAssign, Mul, Neg, Sub},
-    process::Output,
-};
+use std::ops::{Add, AddAssign, Mul, Neg, Sub};
 
 pub type IPoint = Point<isize>;
 
