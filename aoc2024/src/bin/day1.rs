@@ -1,9 +1,9 @@
 use std::collections::HashMap;
 
-use aoc::lines;
+use aoc::{fetch_input, lines};
 
 fn main() {
-    let input: Vec<_> = lines("input/day1")
+    let input: Vec<_> = lines(fetch_input(2024, 1))
         .into_iter()
         .map(|line| {
             let (a, b) = line.split_once(" ").unwrap();

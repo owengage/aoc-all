@@ -1,12 +1,18 @@
+use core::panic;
 use std::{
-    fs::File,
+    env,
+    fs::{self, create_dir_all, File},
     io::{BufRead, BufReader},
     mem,
+    path::{Path, PathBuf},
 };
+
+use reqwest::Method;
 
 pub mod two;
 
-pub fn lines(path: &str) -> Vec<String> {
+/// Simply get each line of input as a vector of strings.
+pub fn lines(path: impl AsRef<Path>) -> Vec<String> {
     let input = BufReader::new(File::open(path).unwrap());
     // Use this rather than flatten, so that we panic if there's an issue rather
     // than mask the error.
@@ -35,6 +41,7 @@ pub fn line_blocks(path: &str) -> Vec<Vec<String>> {
     blocks
 }
 
+/// Same as lines but for string input, useful for tests.
 pub fn lines_from_str(input: &str) -> Vec<String> {
     let input = BufReader::new(input.as_bytes());
     // Use this rather than flatten, so that we panic if there's an issue rather
@@ -53,5 +60,35 @@ impl StrExt for &str {
     fn strip_brackets(&self, left: char, right: char) -> Option<Self> {
         let s = self.strip_prefix(left)?;
         s.strip_suffix(right)
+    }
+}
+
+/// Get input for the given day using API key. Caches results. Panics on
+/// basically any issue.
+pub fn fetch_input(year: usize, day: usize) -> PathBuf {
+    let input_dir = env::var("AOC_INPUT_DIR").unwrap();
+    let api_key = env::var("AOC_KEY").unwrap();
+    let save_path = format!("{input_dir}/{year}/day{day}").into();
+
+    if fs::exists(&save_path).unwrap() {
+        return save_path;
+    }
+
+    let _ = create_dir_all(format!("{input_dir}/{year}"));
+
+    let url = format!("https://adventofcode.com/{year}/day/{day}/input");
+    let client = reqwest::blocking::Client::new();
+    let resp = client
+        .request(Method::GET, url)
+        .header("Cookie", format!("session={}", api_key.trim()))
+        .send()
+        .unwrap();
+
+    if resp.status().is_success() {
+        fs::write(&save_path, resp.text().unwrap()).unwrap();
+        save_path
+    } else {
+        println!("{:?}", resp.text());
+        panic!("failed to get input");
     }
 }

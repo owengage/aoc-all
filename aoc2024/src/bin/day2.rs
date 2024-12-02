@@ -1,7 +1,7 @@
-use aoc::lines;
+use aoc::{fetch_input, lines};
 
 fn main() {
-    let input = lines("input/day2");
+    let input = lines(fetch_input(2024, 2));
     let reports: Vec<_> = input
         .into_iter()
         .map(|line| {
