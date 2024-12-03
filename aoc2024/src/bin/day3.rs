@@ -1,11 +1,10 @@
-use core::str;
-
 use aoc::{fetch_input, text};
+use core::str;
 
 enum State {
     Nonsense,
-    Num1(usize, usize),      // (start index, end index)
-    Num2(u64, usize, usize), // first num, start, end
+    ParsingLeftOp,
+    ParsingEnd(u64),
 }
 
 fn main() {
@@ -21,7 +20,7 @@ fn main() {
             State::Nonsense => {
                 if is_literal(curr, b"mul(", &input) {
                     curr += 4;
-                    state = State::Num1(curr, curr);
+                    state = State::ParsingLeftOp;
                 } else if is_literal(curr, b"do()", &input) {
                     curr += 4;
                     enabled = true;
@@ -32,58 +31,61 @@ fn main() {
                     curr += 1;
                 }
             }
-            State::Num1(start, end) => {
-                if end - start > 3 {
-                    state = State::Nonsense;
-                    continue;
-                }
-                if input[curr].is_ascii_digit() {
-                    curr += 1;
-                    state = State::Num1(start, curr);
-                } else if input[curr] == b',' {
-                    let len = end - start;
-                    if (1..=3).contains(&len) {
-                        let num1: u64 =
-                            str::from_utf8(&input[start..end]).unwrap().parse().unwrap();
+            State::ParsingLeftOp => {
+                if let Some((end, val)) = parse_int(&input, curr) {
+                    curr = end;
+                    if input[curr] == b',' {
                         curr += 1;
-                        state = State::Num2(num1, curr, curr)
+                        state = State::ParsingEnd(val);
+                        continue;
                     }
-                } else {
-                    state = State::Nonsense;
-                    continue;
                 }
+                state = State::Nonsense;
             }
-            State::Num2(num1, start, end) => {
-                if end - start > 3 {
-                    state = State::Nonsense;
-                    continue;
-                }
-                if input[curr].is_ascii_digit() {
-                    curr += 1;
-                    state = State::Num2(num1, start, curr);
-                } else if input[curr] == b')' {
-                    let len = end - start;
-                    if (1..=3).contains(&len) {
-                        let num2: u64 =
-                            str::from_utf8(&input[start..end]).unwrap().parse().unwrap();
+            State::ParsingEnd(num1) => {
+                if let Some((end, val)) = parse_int(&input, curr) {
+                    curr = end;
+                    if input[curr] == b')' {
                         curr += 1;
-                        state = State::Nonsense;
-
                         if enabled {
-                            part2 += num1 * num2;
+                            part2 += num1 * val;
                         }
-                        part1 += num1 * num2;
+                        part1 += num1 * val;
                     }
-                } else {
-                    state = State::Nonsense;
-                    continue;
                 }
+                state = State::Nonsense;
             }
         }
     }
 
     dbg!(part1);
     dbg!(part2);
+    // assert_eq!(82733683, part2);
+}
+
+fn parse_int(input: &[u8], mut curr: usize) -> Option<(usize, u64)> {
+    let start = curr;
+
+    loop {
+        if input[curr].is_ascii_digit() {
+            curr += 1;
+        } else {
+            return if curr > start {
+                let num1: u64 = str::from_utf8(&input[start..curr])
+                    .unwrap()
+                    .parse()
+                    .unwrap_or(u64::MAX); // value was too large.
+
+                if num1 < 1000 {
+                    Some((curr, num1))
+                } else {
+                    None
+                }
+            } else {
+                None
+            };
+        }
+    }
 }
 
 fn is_literal(curr: usize, literal: &[u8], input: &[u8]) -> bool {
