@@ -2,7 +2,7 @@ use core::panic;
 use std::{
     env,
     fs::{self, create_dir_all, File},
-    io::{BufRead, BufReader},
+    io::{BufRead, BufReader, Read},
     mem,
     path::{Path, PathBuf},
 };
@@ -10,6 +10,13 @@ use std::{
 use reqwest::Method;
 
 pub mod two;
+
+pub fn text(path: impl AsRef<Path>) -> String {
+    let mut input = BufReader::new(File::open(path).unwrap());
+    let mut ret = String::new();
+    input.read_to_string(&mut ret).unwrap();
+    ret
+}
 
 /// Simply get each line of input as a vector of strings.
 pub fn lines(path: impl AsRef<Path>) -> Vec<String> {
@@ -67,7 +74,6 @@ impl StrExt for &str {
 /// basically any issue.
 pub fn fetch_input(year: usize, day: usize) -> PathBuf {
     let input_dir = env::var("AOC_INPUT_DIR").unwrap();
-    let api_key = env::var("AOC_KEY").unwrap();
     let save_path = format!("{input_dir}/{year}/day{day}").into();
 
     if fs::exists(&save_path).unwrap() {
@@ -76,6 +82,7 @@ pub fn fetch_input(year: usize, day: usize) -> PathBuf {
 
     let _ = create_dir_all(format!("{input_dir}/{year}"));
 
+    let api_key = env::var("AOC_KEY").unwrap();
     let url = format!("https://adventofcode.com/{year}/day/{day}/input");
     let client = reqwest::blocking::Client::new();
     let resp = client
