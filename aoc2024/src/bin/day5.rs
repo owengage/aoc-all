@@ -8,27 +8,17 @@ fn main() {
     let rules = parse_rules(&input[0]);
     let updates = parse_updates(&input[1]);
 
-    let mut ordered = vec![];
-    let mut unordered = vec![];
-
-    for update in updates {
-        if is_ordered(&rules, &update) {
-            ordered.push(update);
-        } else {
-            unordered.push(update);
-        }
-    }
+    let (ordered, unordered): (Vec<_>, _) = updates
+        .into_iter()
+        .partition(|u| *u == to_ordered(&rules, u.to_vec()));
 
     let reordered = unordered
         .into_iter()
         .map(|up| to_ordered(&rules, up))
         .collect_vec();
 
-    let part1 = midsum(ordered);
-    let part2: isize = midsum(reordered);
-
-    dbg!(part1);
-    dbg!(part2);
+    println!("part1 = {}", midsum(ordered));
+    println!("part2 = {}", midsum(reordered));
 }
 
 fn midsum(updates: Vec<Vec<isize>>) -> isize {
@@ -37,11 +27,9 @@ fn midsum(updates: Vec<Vec<isize>>) -> isize {
 
 fn to_ordered(rules: &[Vec<isize>; 100], mut update: Vec<isize>) -> Vec<isize> {
     update.sort_by(|a, b| {
-        let alesslist = &rules[*a as usize];
-        let blesslist = &rules[*b as usize];
-        if alesslist.contains(b) {
+        if rules[*a as usize].contains(b) {
             Ordering::Less
-        } else if blesslist.contains(a) {
+        } else if rules[*b as usize].contains(a) {
             Ordering::Greater
         } else {
             Ordering::Equal
@@ -49,18 +37,6 @@ fn to_ordered(rules: &[Vec<isize>; 100], mut update: Vec<isize>) -> Vec<isize> {
     });
 
     update
-}
-
-fn is_ordered(rules: &[Vec<isize>; 100], update: &[isize]) -> bool {
-    for (i, val) in update.iter().enumerate() {
-        for follower in update[i + 1..].iter() {
-            if rules[*follower as usize].contains(val) {
-                return false;
-            }
-        }
-    }
-
-    true
 }
 
 fn parse_updates(updates: &[String]) -> Vec<Vec<isize>> {
