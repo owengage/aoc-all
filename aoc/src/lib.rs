@@ -28,7 +28,7 @@ pub fn lines(path: impl AsRef<Path>) -> Vec<String> {
 }
 
 /// Parse input as blocks of lines, each block should be separated be a blank line.
-pub fn line_blocks(path: &str) -> Vec<Vec<String>> {
+pub fn line_blocks(path: impl AsRef<Path>) -> Vec<Vec<String>> {
     let input = lines(path);
     let mut blocks = vec![];
     let mut current = vec![];
