@@ -1,10 +1,12 @@
 use core::panic;
 use std::{
     env,
+    fmt::Debug,
     fs::{self, create_dir_all, File},
     io::{BufRead, BufReader, Read},
     mem,
     path::{Path, PathBuf},
+    str::FromStr,
 };
 
 use reqwest::Method;
@@ -61,12 +63,37 @@ pub trait StrExt {
     fn strip_brackets(&self, left: char, right: char) -> Option<Self>
     where
         Self: Sized;
+
+    fn split_parse<T: FromStr>(&self, pat: &str) -> impl Iterator<Item = T>
+    where
+        T::Err: Debug;
+
+    fn split_once_parse<T: FromStr>(&self, pat: &str) -> (T, T)
+    where
+        T::Err: Debug;
 }
 
 impl StrExt for &str {
     fn strip_brackets(&self, left: char, right: char) -> Option<Self> {
         let s = self.strip_prefix(left)?;
         s.strip_suffix(right)
+    }
+
+    fn split_parse<T>(&self, pat: &str) -> impl Iterator<Item = T>
+    where
+        T: FromStr,
+        T::Err: Debug,
+    {
+        self.split(pat).map(|s| s.parse::<T>().unwrap())
+    }
+
+    fn split_once_parse<T>(&self, pat: &str) -> (T, T)
+    where
+        T: FromStr,
+        T::Err: Debug,
+    {
+        let (a, b) = self.split_once(pat).unwrap();
+        (a.parse().unwrap(), b.parse().unwrap())
     }
 }
 

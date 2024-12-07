@@ -1,16 +1,11 @@
-use aoc::{fetch_input, lines};
+use aoc::{fetch_input, lines, StrExt};
+use itertools::Itertools;
 
 fn main() {
     let input = lines(fetch_input(2024, 2));
     let reports: Vec<_> = input
         .into_iter()
-        .map(|line| {
-            let vals: Vec<usize> = line
-                .split_whitespace()
-                .map(|n| n.parse().unwrap())
-                .collect();
-            vals
-        })
+        .map(|line| line.as_str().split_parse(" ").collect_vec())
         .collect();
 
     let part1: usize = reports

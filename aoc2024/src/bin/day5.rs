@@ -1,5 +1,6 @@
 use std::cmp::Ordering;
 
+use aoc::StrExt;
 use aoc::{fetch_input, line_blocks};
 use itertools::Itertools;
 
@@ -42,16 +43,14 @@ fn to_ordered(rules: &[Vec<isize>; 100], mut update: Vec<isize>) -> Vec<isize> {
 fn parse_updates(updates: &[String]) -> Vec<Vec<isize>> {
     updates
         .iter()
-        .map(|line| line.split(',').map(|n| n.parse().unwrap()).collect_vec())
+        .map(|line| line.as_str().split_parse(",").collect_vec())
         .collect_vec()
 }
 
 fn parse_rules(rules: &[String]) -> [Vec<isize>; 100] {
     let mut ret = [const { vec![] }; 100];
     for rule in rules {
-        let (l, r) = rule.split_once("|").unwrap();
-        let l: isize = l.parse().unwrap();
-        let r: isize = r.parse().unwrap();
+        let (l, r) = rule.as_str().split_once_parse("|");
         ret[l as usize].push(r);
     }
     ret

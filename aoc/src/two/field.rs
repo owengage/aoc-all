@@ -115,6 +115,18 @@ impl<T> DenseField<T> {
         (&self.data[(y * self.width + x) as usize], Point::new(x, y))
     }
 
+    /// `get` but x and y are wrapped around like a torus.
+    pub fn wrapping_get_mut(&mut self, x: isize, y: isize) -> (&mut T, Point<isize>) {
+        let x = x % self.width;
+        let x = if x < 0 { self.width + x } else { x };
+        let y = y % self.height;
+        let y = if y < 0 { self.height + y } else { y };
+        (
+            &mut self.data[(y * self.width + x) as usize],
+            Point::new(x, y),
+        )
+    }
+
     /// Return the list of the eight possible neighbours around this point.
     /// Points outside of the field are not returned. Each value contains the
     /// neighbout value and the point of that neighbour.
@@ -154,6 +166,58 @@ impl<T> DenseField<T> {
             p(x + 1, y),
             p(x - 1, y + 1),
             p(x, y + 1),
+            p(x + 1, y + 1),
+        ]
+        .into_iter()
+    }
+
+    /// Up down left right neighbours
+    pub fn neighbours4_bounded(
+        &self,
+        x: isize,
+        y: isize,
+    ) -> impl Iterator<Item = (&T, Point<isize>)> {
+        let p = |x, y| (self.try_get(x, y), Point::new(x, y));
+        [p(x, y - 1), p(x - 1, y), p(x + 1, y), p(x, y + 1)]
+            .into_iter()
+            .filter_map(|(nei, p)| nei.map(|nei| (nei, p)))
+    }
+
+    /// Up down left right neighbours, like a torus.
+    pub fn neighbours4_torus(
+        &self,
+        x: isize,
+        y: isize,
+    ) -> impl Iterator<Item = (&T, Point<isize>)> {
+        let p = |x, y| self.wrapping_get(x, y);
+        [p(x, y - 1), p(x - 1, y), p(x + 1, y), p(x, y + 1)].into_iter()
+    }
+
+    // Direct diagonals from thiss point.
+    pub fn diagonals_bounded(
+        &self,
+        x: isize,
+        y: isize,
+    ) -> impl Iterator<Item = (&T, Point<isize>)> {
+        let p = |x, y| (self.try_get(x, y), Point::new(x, y));
+        [
+            p(x - 1, y - 1),
+            p(x + 1, y - 1),
+            p(x - 1, y + 1),
+            p(x + 1, y + 1),
+        ]
+        .into_iter()
+        .filter_map(|(nei, p)| nei.map(|nei| (nei, p)))
+    }
+
+    /// Return neighbours as if the field is the surface of a torus.
+    pub fn diagonals_torus(&self, x: isize, y: isize) -> impl Iterator<Item = (&T, Point<isize>)> {
+        let p = |x, y| self.wrapping_get(x, y);
+
+        [
+            p(x - 1, y - 1),
+            p(x + 1, y - 1),
+            p(x - 1, y + 1),
             p(x + 1, y + 1),
         ]
         .into_iter()

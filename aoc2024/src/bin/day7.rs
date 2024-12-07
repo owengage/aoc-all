@@ -1,6 +1,6 @@
 use std::ops::{Add, Mul};
 
-use aoc::{fetch_input, lines};
+use aoc::{fetch_input, lines, StrExt};
 use itertools::Itertools;
 
 struct Calibration {
@@ -15,10 +15,7 @@ fn main() {
         .map(|line| {
             let (test, vals) = line.split_once(": ").unwrap();
             let test: isize = test.trim().parse().unwrap();
-            let values = vals
-                .split_whitespace()
-                .map(|v| v.parse().unwrap())
-                .collect_vec();
+            let values = vals.split_parse(" ").collect_vec();
             Calibration { test, values }
         })
         .collect_vec();
