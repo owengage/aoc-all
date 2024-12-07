@@ -3,7 +3,6 @@ use std::ops::{Add, Mul};
 use aoc::{fetch_input, lines};
 use itertools::Itertools;
 
-#[derive(Debug, Clone)]
 struct Calibration {
     test: isize,
     values: Vec<isize>,
@@ -42,7 +41,10 @@ fn main() {
 }
 
 fn cat(a: isize, b: isize) -> isize {
-    (a.to_string() + &b.to_string()).parse().unwrap()
+    // Faster than converting to strings.
+    let digits = ((b as f64).log10()) as u32 + 1;
+    let shifter = 10isize.pow(digits);
+    a * shifter + b
 }
 
 fn recurse<Op>(cal: &Calibration, current: isize, next: usize, ops: &[Op]) -> bool
@@ -52,6 +54,9 @@ where
     if next == cal.values.len() {
         current == cal.test
     } else {
+        if current > cal.test {
+            return false; // assumes ops only every increase the value.
+        }
         ops.iter()
             .any(|op| recurse(cal, op(current, cal.values[next]), next + 1, ops))
     }
