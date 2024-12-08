@@ -52,6 +52,10 @@ impl<T: Clone> DenseField<T> {
         None
     }
 
+    pub fn data(&self) -> &Vec<T> {
+        &self.data
+    }
+
     /// Rotate the field by 90 degrees clockwise. This obviously flips the
     /// height and width if they're different. Not an efficient operation.
     pub fn rotate_clockwise(&mut self) {
