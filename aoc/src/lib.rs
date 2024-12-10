@@ -111,6 +111,8 @@ pub fn fetch_input(year: usize, day: usize) -> PathBuf {
 
     let api_key = env::var("AOC_KEY").unwrap();
     let url = format!("https://adventofcode.com/{year}/day/{day}/input");
+    println!("Fetching {url}");
+
     let client = reqwest::blocking::Client::new();
     let resp = client
         .request(Method::GET, url)
