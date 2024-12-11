@@ -8,16 +8,10 @@ fn main() {
     let stones: Vec<isize> = input.as_str().trim().split_parse(" ").collect_vec();
     let mut counts = stones.into_iter().counts();
 
-    for _ in 0..25 {
-        blink(&mut counts);
-    }
-
+    (0..25).for_each(|_| blink(&mut counts));
     println!("part1 = {:?}", counts.values().sum::<usize>());
 
-    for _ in 0..50 {
-        blink(&mut counts);
-    }
-
+    (0..50).for_each(|_| blink(&mut counts));
     println!("part2 = {:?}", counts.values().sum::<usize>());
 }
 
