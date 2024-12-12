@@ -43,7 +43,7 @@ impl<T: Clone> DenseField<T> {
     {
         for y in 0..self.height {
             for x in 0..self.width {
-                if *val == *self.get(x, y) {
+                if *val == *self.get(pt(x, y)) {
                     return Some(Point::new(x, y));
                 }
             }
@@ -64,7 +64,7 @@ impl<T: Clone> DenseField<T> {
 
         for oldy in 0..old.height {
             for oldx in 0..old.width {
-                *self.get_mut(old.height - oldy - 1, oldx) = old.get(oldx, oldy).clone();
+                *self.get_mut(pt(old.height - oldy - 1, oldx)) = old.get(pt(oldx, oldy)).clone();
             }
         }
     }
@@ -74,7 +74,7 @@ impl<T: Display> DenseField<T> {
     pub fn debug_print(&self) {
         for y in 0..self.height {
             for x in 0..self.width {
-                print!("{}", self.get(x, y))
+                print!("{}", self.get(pt(x, y)))
             }
             println!()
         }
@@ -82,48 +82,48 @@ impl<T: Display> DenseField<T> {
 }
 
 impl<T> DenseField<T> {
-    pub fn get(&self, x: isize, y: isize) -> &T {
-        assert!(x >= 0 && x < self.width);
-        assert!(y >= 0 && y < self.height);
-        &self.data[(y * self.width + x) as usize]
+    pub fn get(&self, p: IPoint) -> &T {
+        assert!(p.x >= 0 && p.x < self.width);
+        assert!(p.y >= 0 && p.y < self.height);
+        &self.data[(p.y * self.width + p.x) as usize]
     }
 
-    pub fn get_mut(&mut self, x: isize, y: isize) -> &mut T {
-        assert!(x >= 0 && x < self.width);
-        assert!(y >= 0 && y < self.height);
-        &mut self.data[(y * self.width + x) as usize]
+    pub fn get_mut(&mut self, p: IPoint) -> &mut T {
+        assert!(p.x >= 0 && p.x < self.width);
+        assert!(p.y >= 0 && p.y < self.height);
+        &mut self.data[(p.y * self.width + p.x) as usize]
     }
 
-    pub fn try_get(&self, x: isize, y: isize) -> Option<&T> {
-        if (0..self.width).contains(&x) && (0..self.height).contains(&y) {
-            Some(&self.data[(y * self.width + x) as usize])
+    pub fn try_get(&self, p: IPoint) -> Option<&T> {
+        if (0..self.width).contains(&p.x) && (0..self.height).contains(&p.y) {
+            Some(&self.data[(p.y * self.width + p.x) as usize])
         } else {
             None
         }
     }
 
-    pub fn try_get_mut(&mut self, x: isize, y: isize) -> Option<&mut T> {
-        if (0..self.width).contains(&x) && (0..self.height).contains(&y) {
-            Some(&mut self.data[(y * self.width + x) as usize])
+    pub fn try_get_mut(&mut self, p: IPoint) -> Option<&mut T> {
+        if (0..self.width).contains(&p.x) && (0..self.height).contains(&p.y) {
+            Some(&mut self.data[(p.y * self.width + p.x) as usize])
         } else {
             None
         }
     }
 
     /// `get` but x and y are wrapped around like a torus.
-    pub fn wrapping_get(&self, x: isize, y: isize) -> (&T, Point<isize>) {
-        let x = x % self.width;
+    pub fn wrapping_get(&self, p: IPoint) -> (&T, Point<isize>) {
+        let x = p.x % self.width;
         let x = if x < 0 { self.width + x } else { x };
-        let y = y % self.height;
+        let y = p.y % self.height;
         let y = if y < 0 { self.height + y } else { y };
         (&self.data[(y * self.width + x) as usize], Point::new(x, y))
     }
 
     /// `get` but x and y are wrapped around like a torus.
-    pub fn wrapping_get_mut(&mut self, x: isize, y: isize) -> (&mut T, Point<isize>) {
-        let x = x % self.width;
+    pub fn wrapping_get_mut(&mut self, p: IPoint) -> (&mut T, Point<isize>) {
+        let x = p.x % self.width;
         let x = if x < 0 { self.width + x } else { x };
-        let y = y % self.height;
+        let y = p.y % self.height;
         let y = if y < 0 { self.height + y } else { y };
         (
             &mut self.data[(y * self.width + x) as usize],
@@ -134,12 +134,9 @@ impl<T> DenseField<T> {
     /// Return the list of the eight possible neighbours around this point.
     /// Points outside of the field are not returned. Each value contains the
     /// neighbout value and the point of that neighbour.
-    pub fn neighbours8_bounded(
-        &self,
-        x: isize,
-        y: isize,
-    ) -> impl Iterator<Item = (&T, Point<isize>)> {
-        let p = |x, y| (self.try_get(x, y), Point::new(x, y));
+    pub fn neighbours8_bounded(&self, p: IPoint) -> impl Iterator<Item = (&T, Point<isize>)> {
+        let Point { x, y } = p;
+        let p = |x, y| (self.try_get(pt(x, y)), Point::new(x, y));
         [
             p(x - 1, y - 1),
             p(x, y - 1),
@@ -155,12 +152,9 @@ impl<T> DenseField<T> {
     }
 
     /// Return neighbours as if the field is the surface of a torus.
-    pub fn neighbours8_torus(
-        &self,
-        x: isize,
-        y: isize,
-    ) -> impl Iterator<Item = (&T, Point<isize>)> {
-        let p = |x, y| self.wrapping_get(x, y);
+    pub fn neighbours8_torus(&self, p: IPoint) -> impl Iterator<Item = (&T, Point<isize>)> {
+        let Point { x, y } = p;
+        let p = |x, y| self.wrapping_get(pt(x, y));
 
         [
             p(x - 1, y - 1),
@@ -176,34 +170,25 @@ impl<T> DenseField<T> {
     }
 
     /// Up down left right neighbours
-    pub fn neighbours4_bounded(
-        &self,
-        x: isize,
-        y: isize,
-    ) -> impl Iterator<Item = (&T, Point<isize>)> {
-        let p = |x, y| (self.try_get(x, y), Point::new(x, y));
+    pub fn neighbours4_bounded(&self, p: IPoint) -> impl Iterator<Item = (&T, Point<isize>)> {
+        let Point { x, y } = p;
+        let p = |x, y| (self.try_get(pt(x, y)), Point::new(x, y));
         [p(x, y - 1), p(x - 1, y), p(x + 1, y), p(x, y + 1)]
             .into_iter()
             .filter_map(|(nei, p)| nei.map(|nei| (nei, p)))
     }
 
     /// Up down left right neighbours, like a torus.
-    pub fn neighbours4_torus(
-        &self,
-        x: isize,
-        y: isize,
-    ) -> impl Iterator<Item = (&T, Point<isize>)> {
-        let p = |x, y| self.wrapping_get(x, y);
+    pub fn neighbours4_torus(&self, p: IPoint) -> impl Iterator<Item = (&T, Point<isize>)> {
+        let Point { x, y } = p;
+        let p = |x, y| self.wrapping_get(pt(x, y));
         [p(x, y - 1), p(x - 1, y), p(x + 1, y), p(x, y + 1)].into_iter()
     }
 
     // Direct diagonals from thiss point.
-    pub fn diagonals_bounded(
-        &self,
-        x: isize,
-        y: isize,
-    ) -> impl Iterator<Item = (&T, Point<isize>)> {
-        let p = |x, y| (self.try_get(x, y), Point::new(x, y));
+    pub fn diagonals_bounded(&self, p: IPoint) -> impl Iterator<Item = (&T, Point<isize>)> {
+        let Point { x, y } = p;
+        let p = |x, y| (self.try_get(pt(x, y)), Point::new(x, y));
         [
             p(x - 1, y - 1),
             p(x + 1, y - 1),
@@ -215,8 +200,9 @@ impl<T> DenseField<T> {
     }
 
     /// Return neighbours as if the field is the surface of a torus.
-    pub fn diagonals_torus(&self, x: isize, y: isize) -> impl Iterator<Item = (&T, Point<isize>)> {
-        let p = |x, y| self.wrapping_get(x, y);
+    pub fn diagonals_torus(&self, p: IPoint) -> impl Iterator<Item = (&T, Point<isize>)> {
+        let Point { x, y } = p;
+        let p = |x, y| self.wrapping_get(pt(x, y));
 
         [
             p(x - 1, y - 1),
@@ -297,12 +283,12 @@ mod test {
     #[test]
     fn wrapping() {
         let field = DenseField::new(10, 10, 0);
-        assert_eq!(field.wrapping_get(11, 12).1, pt(1, 2));
-        assert_eq!(field.wrapping_get(101, 12).1, pt(1, 2));
-        assert_eq!(field.wrapping_get(-2, -3).1, pt(8, 7)); // 0 -> 0, -1 -> 9...
-        assert_eq!(field.wrapping_get(-12, -103).1, pt(8, 7));
+        assert_eq!(field.wrapping_get(pt(11, 12)).1, pt(1, 2));
+        assert_eq!(field.wrapping_get(pt(101, 12)).1, pt(1, 2));
+        assert_eq!(field.wrapping_get(pt(-2, -3)).1, pt(8, 7)); // 0 -> 0, -1 -> 9...
+        assert_eq!(field.wrapping_get(pt(-12, -103)).1, pt(8, 7));
 
-        let neighbours: HashSet<_> = field.neighbours8_torus(9, 5).map(|t| t.1).collect();
+        let neighbours: HashSet<_> = field.neighbours8_torus(pt(9, 5)).map(|t| t.1).collect();
         assert!(neighbours.contains(&pt(8, 5)));
         assert!(neighbours.contains(&pt(0, 5)));
         assert!(neighbours.contains(&pt(0, 6)));
@@ -319,7 +305,7 @@ mod test {
             }
         }
         let field = DenseField::from_lines(vec!["aaa".to_string()]);
-        let _c: &Cell = field.get(0, 0);
+        let _c: &Cell = field.get(pt(0, 0));
     }
 
     #[test]
@@ -330,7 +316,7 @@ mod test {
 
             for oldy in 0..old.height {
                 for oldx in 0..old.width {
-                    *field.get_mut(old.height - oldy - 1, oldx) = *old.get(oldx, oldy);
+                    *field.get_mut(pt(old.height - oldy - 1, oldx)) = *old.get(pt(oldx, oldy));
                 }
             }
         }
@@ -340,7 +326,7 @@ mod test {
         for y in 0..32 {
             for x in 0..12 {
                 i += 1;
-                *field.get_mut(x, y) = i;
+                *field.get_mut(pt(x, y)) = i;
             }
         }
 

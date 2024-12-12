@@ -63,7 +63,7 @@ fn search(field: &DenseField<usize>, min: u32, max: u32) -> usize {
             let next_momentum = if dir == next_dir { momentum + 1 } else { 1 };
             let next_p = p + next_dir;
             let next_loss = loss
-                + if let Some(cell) = field.try_get(next_p.x, next_p.y) {
+                + if let Some(cell) = field.try_get(next_p) {
                     cell
                 } else {
                     continue; // this isn't on the field.

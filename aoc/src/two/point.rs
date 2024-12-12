@@ -58,11 +58,13 @@ pub struct Point<T> {
     pub y: T,
 }
 
+#[inline]
 pub const fn pt<T: Num>(x: T, y: T) -> Point<T> {
     Point::new(x, y)
 }
 
 impl<T: Num> Point<T> {
+    #[inline]
     pub const fn new(x: T, y: T) -> Self {
         Self { x, y }
     }

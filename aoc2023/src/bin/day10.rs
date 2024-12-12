@@ -3,7 +3,7 @@ use std::collections::{HashSet, VecDeque};
 
 use aoc::{
     lines,
-    two::{pt, DenseField, Point},
+    two::{pt, DenseField, Point, DOWN, LEFT, RIGHT, UP},
 };
 
 #[derive(Debug, PartialEq, Clone)]
@@ -65,7 +65,7 @@ fn part2(
     for y in 0..field.height() {
         let mut in_loop = false;
         for x in 0..field.width() {
-            let cell = field.get(x, y);
+            let cell = field.get(pt(x, y));
             let cell_in_loop = visited.contains(&pt(x, y));
             if cell_in_loop && cell.pipe.down() {
                 in_loop = !in_loop;
@@ -84,29 +84,29 @@ fn fix_start_pipe(field: &mut DenseField<Cell>, start: Point<isize>) {
     let mut new_start = Pipe(0);
 
     // down-up-left-right
-    if let Some(next) = field.try_get(start.x, start.y + 1) {
+    if let Some(next) = field.try_get(start + DOWN) {
         if next.pipe.up() {
             new_start.0 |= 0b1000;
         }
     }
-    if let Some(next) = field.try_get(start.x, start.y - 1) {
+    if let Some(next) = field.try_get(start + UP) {
         if next.pipe.down() {
             new_start.0 |= 0b0100;
         }
     }
-    if let Some(next) = field.try_get(start.x - 1, start.y) {
+    if let Some(next) = field.try_get(start + LEFT) {
         if next.pipe.right() {
             new_start.0 |= 0b0010;
         }
     }
-    if let Some(next) = field.try_get(start.x + 1, start.y) {
+    if let Some(next) = field.try_get(start + RIGHT) {
         if next.pipe.left() {
             new_start.0 |= 0b0001;
         }
     }
 
     assert_eq!(new_start.0.count_ones(), 2);
-    *field.get_mut(start.x, start.y) = Cell {
+    *field.get_mut(start) = Cell {
         pipe: new_start,
         shortest_dist: 0,
     };
@@ -120,30 +120,30 @@ fn part1(mut field: DenseField<Cell>, start: Point<isize>) -> (HashSet<Point<isi
 
     while let Some((pos, dist)) = q.pop_front() {
         visited.insert(pos);
-        let cell = field.get(pos.x, pos.y).clone();
+        let cell = field.get(pos).clone();
 
         if dist < cell.shortest_dist {
-            field.get_mut(pos.x, pos.y).shortest_dist = dist;
+            field.get_mut(pos).shortest_dist = dist;
         } else {
             continue; // Another path got here quicker, so don't bother exploring anymore.
         }
 
-        if let Some(next) = field.try_get(pos.x, pos.y + 1) {
+        if let Some(next) = field.try_get(pos + DOWN) {
             if cell.pipe.down() && next.pipe.up() {
                 q.push_back((pt(pos.x, pos.y + 1), dist + 1));
             }
         }
-        if let Some(next) = field.try_get(pos.x, pos.y - 1) {
+        if let Some(next) = field.try_get(pos + UP) {
             if cell.pipe.up() && next.pipe.down() {
                 q.push_back((pt(pos.x, pos.y - 1), dist + 1));
             }
         }
-        if let Some(next) = field.try_get(pos.x - 1, pos.y) {
+        if let Some(next) = field.try_get(pos + LEFT) {
             if cell.pipe.left() && next.pipe.right() {
                 q.push_back((pt(pos.x - 1, pos.y), dist + 1));
             }
         }
-        if let Some(next) = field.try_get(pos.x + 1, pos.y) {
+        if let Some(next) = field.try_get(pos + RIGHT) {
             if cell.pipe.right() && next.pipe.left() {
                 q.push_back((pt(pos.x + 1, pos.y), dist + 1));
             }
@@ -152,7 +152,7 @@ fn part1(mut field: DenseField<Cell>, start: Point<isize>) -> (HashSet<Point<isi
 
     let ans = visited
         .iter()
-        .map(|p| field.get(p.x, p.y).shortest_dist)
+        .map(|p| field.get(*p).shortest_dist)
         .max()
         .unwrap();
 

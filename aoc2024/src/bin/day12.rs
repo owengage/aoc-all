@@ -34,7 +34,7 @@ fn part2(mut field: DenseField<Cell>) -> usize {
 
     // Go until we've found all regions.
     while let Some(lead) = leads.pop_front() {
-        let cell = *field.get(lead.x, lead.y);
+        let cell = *field.get(lead);
         if cell.visited {
             continue; // already seen here.
         }
@@ -47,11 +47,11 @@ fn part2(mut field: DenseField<Cell>) -> usize {
 
         // Flood fill this region.
         while let Some(p) = q.pop_front() {
-            if field.get(p.x, p.y).visited {
+            if field.get(p).visited {
                 continue;
             }
 
-            field.get_mut(p.x, p.y).visited = true;
+            field.get_mut(p).visited = true;
 
             // We only got here if the value was equal to the flood we're
             // currently doing so we can add to the area.
@@ -63,12 +63,9 @@ fn part2(mut field: DenseField<Cell>) -> usize {
                 let n2 = p + dirns[1]; // neighbour 'right'
                 let corner = p + dirns[0] + dirns[1]; // 'corner'
 
-                let v1 = field.try_get(n1.x, n1.y).map(|c| c.value).unwrap_or('.');
-                let v2 = field.try_get(n2.x, n2.y).map(|c| c.value).unwrap_or('.');
-                let vc = field
-                    .try_get(corner.x, corner.y)
-                    .map(|c| c.value)
-                    .unwrap_or('.');
+                let v1 = field.try_get(n1).map(|c| c.value).unwrap_or('.');
+                let v2 = field.try_get(n2).map(|c| c.value).unwrap_or('.');
+                let vc = field.try_get(corner).map(|c| c.value).unwrap_or('.');
 
                 // Vertex if both up/right are not equal to us.
                 let exterior_corner = v1 != cell.value && v2 != cell.value;
@@ -82,7 +79,7 @@ fn part2(mut field: DenseField<Cell>) -> usize {
             }
 
             // Actually flood fill still.
-            let neigh = field.neighbours4_bounded(p.x, p.y).collect_vec();
+            let neigh = field.neighbours4_bounded(p).collect_vec();
             for (ncell, n) in neigh {
                 if ncell.value == flood_value {
                     q.push_back(n);
@@ -111,7 +108,7 @@ fn part1(mut field: DenseField<Cell>) -> usize {
     // adds 1 to the perim INCLUDING field boundaries, and valeus of same add
     // one to area.
     while let Some(lead) = leads.pop_front() {
-        let cell = field.get(lead.x, lead.y);
+        let cell = field.get(lead);
         if cell.visited {
             continue; // already seen here.
         }
@@ -124,13 +121,13 @@ fn part1(mut field: DenseField<Cell>) -> usize {
 
         while let Some(p) = q.pop_front() {
             // println!("Visiting {:?}", p);
-            if field.get(p.x, p.y).visited {
+            if field.get(p).visited {
                 continue;
             }
 
-            field.get_mut(p.x, p.y).visited = true;
+            field.get_mut(p).visited = true;
 
-            let neigh = field.neighbours4_bounded(p.x, p.y).collect_vec();
+            let neigh = field.neighbours4_bounded(p).collect_vec();
             perim += 4 - neigh.len(); // account for any borders.
             area += 1;
 

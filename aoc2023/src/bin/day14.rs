@@ -3,7 +3,10 @@ use std::{
     fmt::{Display, Write},
 };
 
-use aoc::{lines, two::DenseField};
+use aoc::{
+    lines,
+    two::{pt, DenseField},
+};
 
 #[derive(Debug, Clone, Copy, PartialEq, Hash, Eq)]
 enum Cell {
@@ -66,7 +69,7 @@ fn north_support_load(field: &DenseField<Cell>) -> usize {
     let mut load = 0usize;
 
     for p in field.points() {
-        if let Cell::RoundRock = field.get(p.x, p.y) {
+        if let Cell::RoundRock = field.get(p) {
             load += (field.height() - p.y) as usize;
         }
     }
@@ -79,21 +82,21 @@ fn roll_north(field: &mut DenseField<Cell>) {
     // hit something, or the top.
     for y in 0..field.height() {
         for x in 0..field.width() {
-            match field.get(x, y) {
+            match field.get(pt(x, y)) {
                 Cell::RoundRock => {
                     // go down from y to 0 here as much as we can.
                     let mut fell_off = true;
                     for i in 0..y {
-                        if *field.get(x, y - i - 1) != Cell::Empty {
-                            *field.get_mut(x, y) = Cell::Empty;
-                            *field.get_mut(x, y - i) = Cell::RoundRock;
+                        if *field.get(pt(x, y - i - 1)) != Cell::Empty {
+                            *field.get_mut(pt(x, y)) = Cell::Empty;
+                            *field.get_mut(pt(x, y - i)) = Cell::RoundRock;
                             fell_off = false;
                             break;
                         }
                     }
                     if fell_off {
-                        *field.get_mut(x, y) = Cell::Empty;
-                        *field.get_mut(x, 0) = Cell::RoundRock;
+                        *field.get_mut(pt(x, y)) = Cell::Empty;
+                        *field.get_mut(pt(x, 0)) = Cell::RoundRock;
                     }
                 }
                 Cell::SquareRock => {}

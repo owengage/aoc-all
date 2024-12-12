@@ -46,7 +46,7 @@ fn part1(antennas: &HashMap<u8, Vec<IPoint>>, field: &mut DenseField<Cell>) -> u
             let p2 = *pair[1];
             let delta = p2 - p1;
             let antinode = p2 + delta;
-            if let Some(cell) = field.try_get_mut(antinode.x, antinode.y) {
+            if let Some(cell) = field.try_get_mut(antinode) {
                 cell.has_antinode = true;
             }
         }
@@ -63,7 +63,7 @@ fn part2(antennas: &HashMap<u8, Vec<IPoint>>, field: &mut DenseField<Cell>) -> u
             let delta = p2 - p1;
             let mut antinode = p2; // starts at self now for part2.
 
-            while let Some(cell) = field.try_get_mut(antinode.x, antinode.y) {
+            while let Some(cell) = field.try_get_mut(antinode) {
                 cell.has_antinode = true;
                 antinode += delta; // move on.
             }
@@ -78,7 +78,7 @@ fn find_antennas(field: &DenseField<Cell>) -> HashMap<u8, Vec<Point<isize>>> {
 
     // Need to know where all the various frequency antenna are.
     for p in field.points() {
-        let cell = field.get(p.x, p.y);
+        let cell = field.get(p);
         if let Some(ant) = cell.antenna {
             antenna.entry(ant).or_default().push(p);
         }

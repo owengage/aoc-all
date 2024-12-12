@@ -58,7 +58,7 @@ fn part2(input: &[String]) -> usize {
 
 fn parse_game(line: &str) -> Game {
     let (_, rest) = line.split_once(':').unwrap();
-    let draws = rest.split(|c| c == ';' || c == ',');
+    let draws = rest.split([';', ',']);
 
     let mut game = HashMap::new();
     for draw in draws {

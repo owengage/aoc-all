@@ -54,7 +54,7 @@ fn energize(field: &DenseField<Cell>, start: Point<isize>, dirn: Dirn) -> usize 
     q.push_back((start, dirn));
 
     while let Some((p, dirn)) = q.pop_back() {
-        if field.try_get(p.x, p.y).is_none() {
+        if field.try_get(p).is_none() {
             continue; // fell off.
         }
 
@@ -63,7 +63,7 @@ fn energize(field: &DenseField<Cell>, start: Point<isize>, dirn: Dirn) -> usize 
             continue;
         }
 
-        let cell = field.get(p.x, p.y);
+        let cell = field.get(p);
 
         match cell {
             Cell::LeftDown => match dirn {

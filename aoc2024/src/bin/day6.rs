@@ -17,24 +17,24 @@ fn main() {
 
     loop {
         // Can we walk forward?
-        let next_pt = guard + to_dirn(*field.get(guard.x, guard.y));
-        let Some(next) = field.try_get(next_pt.x, next_pt.y) else {
+        let next_pt = guard + to_dirn(*field.get(guard));
+        let Some(next) = field.try_get(next_pt) else {
             break; // fell off.
         };
 
         match next {
             b'.' => {
                 // Can walk forward.
-                let old = *field.get(guard.x, guard.y);
-                *field.get_mut(next_pt.x, next_pt.y) = old;
-                *field.get_mut(guard.x, guard.y) = b'.';
+                let old = *field.get(guard);
+                *field.get_mut(next_pt) = old;
+                *field.get_mut(guard) = b'.';
 
                 guard = next_pt;
                 visited.insert(guard);
             }
             b'#' => {
                 // Can't walk forward, just rotate the guard in place for ease.
-                let gval = field.get_mut(guard.x, guard.y);
+                let gval = field.get_mut(guard);
                 *gval = match gval {
                     b'^' => b'>',
                     b'>' => b'v',
@@ -60,7 +60,7 @@ fn main() {
     for obstacle in visited {
         // Create field with new obstacle.
         let mut field = original_field.clone();
-        *field.get_mut(obstacle.x, obstacle.y) = b'#';
+        *field.get_mut(obstacle) = b'#';
 
         if contains_loop(original_guard, field) {
             count += 1;
@@ -75,17 +75,17 @@ fn contains_loop(mut guard: IPoint, mut field: DenseField<u8>) -> bool {
 
     loop {
         // Can we walk forward?
-        let next_pt = guard + to_dirn(*field.get(guard.x, guard.y));
-        let Some(next) = field.try_get(next_pt.x, next_pt.y) else {
+        let next_pt = guard + to_dirn(*field.get(guard));
+        let Some(next) = field.try_get(next_pt) else {
             return false; // fell off.
         };
 
         match next {
             b'.' => {
                 // Can walk forward.
-                let old = *field.get(guard.x, guard.y);
-                *field.get_mut(next_pt.x, next_pt.y) = old;
-                *field.get_mut(guard.x, guard.y) = b'.';
+                let old = *field.get(guard);
+                *field.get_mut(next_pt) = old;
+                *field.get_mut(guard) = b'.';
 
                 guard = next_pt;
                 if history.insert((old, guard)) {
@@ -96,7 +96,7 @@ fn contains_loop(mut guard: IPoint, mut field: DenseField<u8>) -> bool {
             }
             b'#' => {
                 // Can't walk forward, just rotate the guard in place for ease.
-                let gval = field.get_mut(guard.x, guard.y);
+                let gval = field.get_mut(guard);
                 *gval = match gval {
                     b'^' => b'>',
                     b'>' => b'v',

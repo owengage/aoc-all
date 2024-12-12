@@ -2,7 +2,7 @@ use std::{collections::HashMap, mem};
 
 use aoc::{
     lines,
-    two::{DenseField, Point},
+    two::{pt, DenseField, Point},
 };
 
 fn main() {
@@ -55,7 +55,7 @@ fn get_parts(engine: DenseField<u8>) -> Vec<(Part, usize)> {
 
             // what symbol are we near, if any?
             for i in x_start..x_end {
-                for (neighbour, p) in engine.neighbours8_bounded(i, y) {
+                for (neighbour, p) in engine.neighbours8_bounded(pt(i, y)) {
                     if !neighbour.is_ascii_digit() && *neighbour != b'.' {
                         let symbol = *neighbour as char;
                         parts.push((Part { symbol, p }, n));
@@ -66,7 +66,7 @@ fn get_parts(engine: DenseField<u8>) -> Vec<(Part, usize)> {
         };
 
         for x in 0..engine.width() {
-            let c = engine.get(x, y);
+            let c = engine.get(pt(x, y));
             if c.is_ascii_digit() {
                 current_number.push(*c as char)
             } else {

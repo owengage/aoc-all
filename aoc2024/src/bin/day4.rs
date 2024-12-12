@@ -20,14 +20,14 @@ fn part2(field: &DenseField<u8>) -> HashSet<IPoint> {
     let mut xmases = HashSet::<IPoint>::new(); // point of central A.
 
     for p in field.points() {
-        if field.get(p.x, p.y) == &b'A' {
+        if field.get(p) == &b'A' {
             let neigh = [p + pt(1, 1), p + pt(-1, 1), p + pt(1, -1), p + pt(-1, -1)];
             let mut count = 0;
 
             for n in neigh {
-                if let Some(&b'M') = field.try_get(n.x, n.y) {
+                if let Some(&b'M') = field.try_get(n) {
                     let other = p - (n - p);
-                    let val = field.try_get(other.x, other.y);
+                    let val = field.try_get(other);
 
                     if let Some(b'S') = val {
                         count += 1;
@@ -48,11 +48,11 @@ fn part1(field: &DenseField<u8>) -> HashSet<(IPoint, IPoint)> {
     let mut xmases = HashSet::<(IPoint, IPoint)>::new();
 
     for p in field.points() {
-        if field.get(p.x, p.y) == &b'X' {
+        if field.get(p) == &b'X' {
             // Found the X, do any neighbours give us the M?
-            let neigh = field.neighbours8_bounded(p.x, p.y);
+            let neigh = field.neighbours8_bounded(p);
             'neighs: for n in neigh {
-                if field.get(n.1.x, n.1.y) == &b'M' {
+                if field.get(n.1) == &b'M' {
                     // Found the M, we now have a direction to look in for the
                     // extra characters.
                     let dirn = n.1 - p;
@@ -60,7 +60,7 @@ fn part1(field: &DenseField<u8>) -> HashSet<(IPoint, IPoint)> {
                     for (i, ch) in rest.iter().enumerate() {
                         let offset = dirn * (i + 2) as isize; // +1 is the M, +2 is the A...
                         let probe = p + offset;
-                        let val = field.try_get(probe.x, probe.y);
+                        let val = field.try_get(probe);
                         if val.is_none() || val.unwrap() != ch {
                             continue 'neighs; // this direction isn't XMAS.
                         }

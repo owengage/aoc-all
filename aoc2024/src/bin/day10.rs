@@ -21,7 +21,7 @@ fn main() {
 
         while let Some(head) = q.pop_front() {
             // For each head, look around, add any valid next heads to queue.
-            let val = *field.get(head.x, head.y);
+            let val = *field.get(head);
             let target = val + 1;
 
             // We win!
@@ -31,7 +31,7 @@ fn main() {
                 continue;
             }
 
-            for (&nval, np) in field.neighbours4_bounded(head.x, head.y) {
+            for (&nval, np) in field.neighbours4_bounded(head) {
                 if nval == target {
                     q.push_back(np);
                 }
@@ -46,8 +46,5 @@ fn main() {
 }
 
 fn get_heads(field: &DenseField<u32>) -> Vec<IPoint> {
-    field
-        .points()
-        .filter(|p| *field.get(p.x, p.y) == 0)
-        .collect()
+    field.points().filter(|p| *field.get(*p) == 0).collect()
 }
