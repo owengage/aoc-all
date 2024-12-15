@@ -50,6 +50,16 @@ impl Dirn {
             _ => panic!("unknown direction letter: {s}"),
         }
     }
+
+    pub fn from_arrow(s: char) -> Dirn {
+        match s {
+            '>' => Dirn::Right,
+            '<' => Dirn::Left,
+            '^' => Dirn::Up,
+            'v' => Dirn::Down,
+            _ => panic!("unknown direction arrow: {s}"),
+        }
+    }
 }
 
 #[derive(Debug, PartialEq, Clone, Copy, Eq, Hash, PartialOrd)]
