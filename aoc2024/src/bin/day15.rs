@@ -1,11 +1,8 @@
-use std::{
-    fmt::{Display, Write},
-    io::{stdin, stdout},
-};
+use std::fmt::{Display, Write};
 
 use aoc::{
     fetch_input, line_blocks,
-    two::{DenseField, Dirn, IPoint, DOWN, LEFT, RIGHT, UP},
+    two::{DenseField, Dirn, IPoint, LEFT, RIGHT},
 };
 use itertools::Itertools;
 
@@ -16,32 +13,6 @@ enum Cell {
     BoxLeft,
     BoxRight,
     Empty,
-}
-
-impl From<u8> for Cell {
-    fn from(value: u8) -> Self {
-        match value {
-            b'@' => Cell::Robot,
-            b'#' => Cell::Wall,
-            b'.' => Cell::Empty,
-            b'O' => Cell::BoxLeft,
-            b'[' => Cell::BoxLeft,
-            b']' => Cell::BoxRight,
-            _ => panic!(),
-        }
-    }
-}
-
-impl Display for Cell {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        f.write_char(match self {
-            Cell::Robot => '@',
-            Cell::Wall => '#',
-            Cell::BoxLeft => '[',
-            Cell::BoxRight => ']',
-            Cell::Empty => '.',
-        })
-    }
 }
 
 fn main() {
@@ -57,30 +28,17 @@ fn main() {
     let mut field = part2_field(&input[0]);
     let mut robot = field.find(&Cell::Robot).unwrap();
 
-    // loop {
-    //     field.debug_print();
-    //     let mut buf = String::new();
-    //     stdin().read_line(&mut buf).unwrap();
-    //     let d = Dirn::from_arrow(match buf.trim().chars().next() {
-    //         Some(d) => d,
-    //         None => continue,
-    //     });
-    //     println!("Moving {d:?}");
-
-    //     move_robot2(&mut field, &mut robot, d);
-    //     field.debug_print();
-    // }
-
     for dirn in moves {
-        move_robot2(&mut field, &mut robot, dirn)
+        move_robot_p2(&mut field, &mut robot, dirn)
     }
     field.debug_print();
 
-    // high: 1482526
-    println!("part2 = {}", calc_score(&field));
+    let part2 = calc_score(&field);
+    assert_eq!(part2, 1475512);
+    println!("part2 = {}", part2);
 }
 
-fn move_robot2(field: &mut DenseField<Cell>, robot: &mut IPoint, dirn: Dirn) {
+fn move_robot_p2(field: &mut DenseField<Cell>, robot: &mut IPoint, dirn: Dirn) {
     assert_eq!(*field.get(*robot), Cell::Robot);
     let destp = *robot + dirn.as_point();
     let dest = field.get(destp).clone();
@@ -109,199 +67,121 @@ fn move_robot2(field: &mut DenseField<Cell>, robot: &mut IPoint, dirn: Dirn) {
     }
 }
 
+fn move_box(field: &mut DenseField<Cell>, left_src: IPoint, left_dst: IPoint) {
+    assert_eq!(*field.get(left_src), Cell::BoxLeft);
+    *field.get_mut(left_src) = Cell::Empty;
+    *field.get_mut(left_src + RIGHT) = Cell::Empty;
+    *field.get_mut(left_dst) = Cell::BoxLeft;
+    *field.get_mut(left_dst + RIGHT) = Cell::BoxRight;
+}
+
 fn shove_box(field: &mut DenseField<Cell>, box_left: IPoint, dirn: Dirn, dry: bool) -> bool {
-    // We need to check the direct boxes we'll effect first, then move our box
-    // if they're all fine.
+    let mov = |field: &mut DenseField<Cell>| {
+        if dry {
+            return;
+        };
+        move_box(field, box_left, box_left + dirn.as_point());
+    };
+
+    let handle_vert = |field: &mut DenseField<Cell>, dirn: Dirn| {
+        let blocker_left = field.get(box_left + dirn.as_point()).clone();
+        let blocker_right = field.get(box_left + dirn.as_point() + RIGHT).clone();
+
+        match blocker_left {
+            Cell::Wall => return false,
+            Cell::Empty => {} // fine here, still need to look at other blocker.
+            Cell::BoxLeft => {
+                // simple case, we're directly below another box, so just
+                // need to check this one.
+                assert_eq!(blocker_right, Cell::BoxRight);
+                if shove_box(field, box_left + dirn.as_point(), dirn, dry) {
+                    mov(field);
+                    return true;
+                } else {
+                    return false;
+                }
+            }
+            Cell::BoxRight => {
+                // complex case, got to check other side too.
+                if shove_box(field, box_left + dirn.as_point() + LEFT, dirn, true) {
+                    // can't move yet, right may be blocked.
+                } else {
+                    return false;
+                }
+            }
+            Cell::Robot => panic!(),
+        }
+
+        match blocker_right {
+            Cell::Wall => false,
+            Cell::BoxLeft => {
+                if shove_box(field, box_left + dirn.as_point() + RIGHT, dirn, dry) {
+                    if *field.get(box_left + dirn.as_point() + LEFT) == Cell::BoxLeft {
+                        assert!(shove_box(
+                            field,
+                            box_left + dirn.as_point() + LEFT,
+                            dirn,
+                            dry
+                        ));
+                    }
+                    mov(field); // can finally move it
+                    true
+                } else {
+                    false
+                }
+            }
+            Cell::Empty => {
+                if *field.get(box_left + dirn.as_point() + LEFT) == Cell::BoxLeft {
+                    assert!(shove_box(
+                        field,
+                        box_left + dirn.as_point() + LEFT,
+                        dirn,
+                        dry
+                    ));
+                }
+                mov(field);
+                true
+            }
+            Cell::BoxRight => panic!(), // should have been dealt with above.
+            Cell::Robot => panic!(),
+        }
+    };
+
     match dirn {
-        Dirn::Right => {
-            let mov = |field: &mut DenseField<Cell>| {
-                if dry {
-                    panic!();
-                };
-                *field.get_mut(box_left) = Cell::Empty;
-                *field.get_mut(box_left + RIGHT) = Cell::BoxLeft;
-                *field.get_mut(box_left + 2 * RIGHT) = Cell::BoxRight;
-            };
-            match field.get(box_left + 2 * RIGHT).clone() {
-                Cell::Wall => false,
-                Cell::BoxLeft => {
-                    // Otherwise shove the box in the way if we can.
-                    if shove_box(field, box_left + 2 * RIGHT, Dirn::Right, dry) {
-                        mov(field);
-                        true
-                    } else {
-                        false
-                    }
-                }
-                Cell::Empty => {
+        Dirn::Up | Dirn::Down => handle_vert(field, dirn),
+        Dirn::Right => match field.get(box_left + 2 * dirn.as_point()).clone() {
+            Cell::Wall => false,
+            Cell::BoxLeft => {
+                // Otherwise shove the box in the way if we can.
+                if shove_box(field, box_left + 2 * dirn.as_point(), dirn, dry) {
                     mov(field);
                     true
+                } else {
+                    false
                 }
-                _ => panic!(),
             }
-        }
-        Dirn::Left => {
-            let mov = |field: &mut DenseField<Cell>| {
-                if dry {
-                    panic!();
-                };
-                *field.get_mut(box_left) = Cell::BoxRight;
-                *field.get_mut(box_left + LEFT) = Cell::BoxLeft;
-                *field.get_mut(box_left + RIGHT) = Cell::Empty;
-            };
-
-            match field.get(box_left + LEFT).clone() {
-                Cell::Wall => false,
-                Cell::BoxRight => {
-                    if shove_box(field, box_left + 2 * LEFT, Dirn::Left, dry) {
-                        mov(field);
-                        true
-                    } else {
-                        false
-                    }
-                }
-                Cell::Empty => {
+            Cell::Empty => {
+                mov(field);
+                true
+            }
+            _ => panic!(),
+        },
+        Dirn::Left => match field.get(box_left + LEFT).clone() {
+            Cell::Wall => false,
+            Cell::BoxRight => {
+                if shove_box(field, box_left + 2 * dirn.as_point(), dirn, dry) {
                     mov(field);
                     true
-                }
-                _ => panic!(),
-            }
-        }
-        Dirn::Up => {
-            let mov = |field: &mut DenseField<Cell>| {
-                if dry {
-                    return;
-                };
-                *field.get_mut(box_left) = Cell::Empty;
-                *field.get_mut(box_left + RIGHT) = Cell::Empty;
-                *field.get_mut(box_left + UP) = Cell::BoxLeft;
-                *field.get_mut(box_left + UP + RIGHT) = Cell::BoxRight;
-            };
-
-            let blocker_left = field.get(box_left + UP).clone();
-            let blocker_right = field.get(box_left + UP + RIGHT).clone();
-
-            match blocker_left {
-                Cell::Robot => panic!(),
-                Cell::Wall => return false,
-                Cell::BoxLeft => {
-                    // simple case, we're directly below another box, so just
-                    // need to check this one.
-                    assert_eq!(blocker_right, Cell::BoxRight);
-                    if shove_box(field, box_left + UP, Dirn::Up, dry) {
-                        mov(field);
-                        return true;
-                    } else {
-                        return false;
-                    }
-                }
-                Cell::BoxRight => {
-                    // complex case, got to check other side too.
-                    // ..[]??
-                    // ...[]. moving up...
-                    if shove_box(field, box_left + UP + LEFT, Dirn::Up, true) {
-                        // can't move yet, right may be blocked.
-                    } else {
-                        return false;
-                    }
-                }
-                Cell::Empty => {} // fine here, still need to look at other blocker.
-            }
-
-            match blocker_right {
-                Cell::Robot => panic!(),
-                Cell::Wall => false,
-                Cell::BoxLeft => {
-                    // ..??[]
-                    // ...[]. moving up...
-                    if shove_box(field, box_left + UP + RIGHT, Dirn::Up, dry) {
-                        if *field.get(box_left + UP + LEFT) == Cell::BoxLeft {
-                            assert!(shove_box(field, box_left + UP + LEFT, Dirn::Up, dry));
-                        }
-                        mov(field); // can finally move it
-                        true
-                    } else {
-                        false
-                    }
-                }
-                Cell::BoxRight => panic!(), // should have been dealt with above.
-                Cell::Empty => {
-                    if *field.get(box_left + UP + LEFT) == Cell::BoxLeft {
-                        assert!(shove_box(field, box_left + UP + LEFT, Dirn::Up, dry));
-                    }
-                    mov(field);
-                    true
+                } else {
+                    false
                 }
             }
-        }
-        Dirn::Down => {
-            let mov = |field: &mut DenseField<Cell>| {
-                if dry {
-                    return;
-                };
-                *field.get_mut(box_left) = Cell::Empty;
-                *field.get_mut(box_left + RIGHT) = Cell::Empty;
-                *field.get_mut(box_left + DOWN) = Cell::BoxLeft;
-                *field.get_mut(box_left + DOWN + RIGHT) = Cell::BoxRight;
-            };
-
-            let blocker_left = field.get(box_left + DOWN).clone();
-            let blocker_right = field.get(box_left + DOWN + RIGHT).clone();
-
-            match blocker_left {
-                Cell::Robot => panic!(),
-                Cell::Wall => return false,
-                Cell::BoxLeft => {
-                    // simple case, we're directly below another box, so just
-                    // need to check this one.
-                    assert_eq!(blocker_right, Cell::BoxRight);
-                    if shove_box(field, box_left + DOWN, Dirn::Down, dry) {
-                        mov(field);
-                        return true;
-                    } else {
-                        return false;
-                    }
-                }
-                Cell::BoxRight => {
-                    // complex case, got to check other side too.
-                    // ..[]??
-                    // ...[]. moving up...
-                    if shove_box(field, box_left + DOWN + LEFT, Dirn::Down, true) {
-                        // can't move yet, right may be blocked.
-                    } else {
-                        return false;
-                    }
-                }
-                Cell::Empty => {} // fine here, still need to look at other blocker.
+            Cell::Empty => {
+                mov(field);
+                true
             }
-
-            match blocker_right {
-                Cell::Robot => panic!(),
-                Cell::Wall => false,
-                Cell::BoxLeft => {
-                    // ..??[]
-                    // ...[]. moving up...
-                    if shove_box(field, box_left + DOWN + RIGHT, Dirn::Down, dry) {
-                        if *field.get(box_left + DOWN + LEFT) == Cell::BoxLeft {
-                            assert!(shove_box(field, box_left + DOWN + LEFT, Dirn::Down, dry));
-                        }
-                        mov(field); // can finally move it
-                        true
-                    } else {
-                        false
-                    }
-                }
-                Cell::BoxRight => panic!(), // should have been dealt with above.
-                Cell::Empty => {
-                    // try to shove other side.
-                    if *field.get(box_left + DOWN + LEFT) == Cell::BoxLeft {
-                        assert!(shove_box(field, box_left + DOWN + LEFT, Dirn::Down, dry));
-                    }
-                    mov(field);
-                    true
-                }
-            }
-        }
+            _ => panic!(),
+        },
     }
 }
 
@@ -328,7 +208,7 @@ fn part1(mut field: DenseField<Cell>, moves: Vec<Dirn>) {
     let mut robot = field.find(&Cell::Robot).unwrap();
 
     for dirn in moves {
-        move_robot(&mut field, &mut robot, dirn);
+        move_robot_p1(&mut field, &mut robot, dirn);
     }
 
     println!("part1 = {}", calc_score(&field));
@@ -345,7 +225,7 @@ fn calc_score(field: &DenseField<Cell>) -> isize {
     score
 }
 
-fn move_robot(field: &mut DenseField<Cell>, robot: &mut IPoint, dirn: Dirn) {
+fn move_robot_p1(field: &mut DenseField<Cell>, robot: &mut IPoint, dirn: Dirn) {
     assert_eq!(*field.get(*robot), Cell::Robot);
     let destp = *robot + dirn.as_point();
     let dest = field.get(destp).clone();
@@ -398,29 +278,40 @@ fn move_robot(field: &mut DenseField<Cell>, robot: &mut IPoint, dirn: Dirn) {
     }
 }
 
+impl From<u8> for Cell {
+    fn from(value: u8) -> Self {
+        match value {
+            b'@' => Cell::Robot,
+            b'#' => Cell::Wall,
+            b'.' => Cell::Empty,
+            b'O' => Cell::BoxLeft,
+            b'[' => Cell::BoxLeft,
+            b']' => Cell::BoxRight,
+            _ => panic!(),
+        }
+    }
+}
+
+impl Display for Cell {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.write_char(match self {
+            Cell::Robot => '@',
+            Cell::Wall => '#',
+            Cell::BoxLeft => '[',
+            Cell::BoxRight => ']',
+            Cell::Empty => '.',
+        })
+    }
+}
+
 #[cfg(test)]
 mod test {
-    use std::io::{stdin, stdout, Write};
+    use aoc::two::Dirn;
 
-    use aoc::{
-        lines_from_str,
-        two::{pt, Dirn},
-    };
-
-    use crate::{move_robot2, part2_field, Cell};
+    use crate::{move_robot_p2, part2_field, Cell};
 
     #[test]
     fn test_parse() {
-        // let mut field = part2_field(&[
-        //     "######".to_string(),
-        //     ".##@.".to_string(),
-        //     "..[].".to_string(),
-        //     ".[]..".to_string(),
-        //     "...[]".to_string(),
-        //     ".....".to_string(),
-        //     "#####".to_string(),
-        // ]);
-
         let mut field = part2_field(&[
             "######".to_string(),
             "......".to_string(),
@@ -434,7 +325,7 @@ mod test {
 
         for d in moves {
             println!("Moving {d:?}");
-            move_robot2(&mut field, &mut robot, d);
+            move_robot_p2(&mut field, &mut robot, d);
             field.debug_print();
         }
     }
