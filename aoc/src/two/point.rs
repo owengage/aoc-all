@@ -21,10 +21,10 @@ pub const DOWN: IPoint = pt(0, 1);
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub enum Dirn {
-    Right,
-    Left,
-    Up,
-    Down,
+    Up = 0,
+    Left = 1,
+    Down = 2,
+    Right = 3,
 }
 
 impl Dirn {
@@ -58,6 +58,24 @@ impl Dirn {
             '^' => Dirn::Up,
             'v' => Dirn::Down,
             _ => panic!("unknown direction arrow: {s}"),
+        }
+    }
+
+    pub fn anticlockwise(&self) -> Self {
+        match self {
+            Dirn::Up => Dirn::Left,
+            Dirn::Left => Dirn::Down,
+            Dirn::Down => Dirn::Right,
+            Dirn::Right => Dirn::Up,
+        }
+    }
+
+    pub fn clockwise(&self) -> Self {
+        match self {
+            Dirn::Up => Dirn::Right,
+            Dirn::Left => Dirn::Up,
+            Dirn::Down => Dirn::Left,
+            Dirn::Right => Dirn::Down,
         }
     }
 }
