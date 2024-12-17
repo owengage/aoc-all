@@ -1,5 +1,5 @@
 use std::{
-    collections::{HashSet, VecDeque},
+    collections::{BinaryHeap, HashSet, VecDeque},
     usize,
 };
 
@@ -20,6 +20,26 @@ enum CellValue {
 struct Cell {
     lowest: [usize; 4],
     value: CellValue,
+}
+
+#[derive(Debug, PartialEq, Eq)]
+struct State {
+    head: IPoint,
+    dirn: Dirn,
+    score: usize,
+    route: Vec<IPoint>,
+}
+
+impl PartialOrd for State {
+    fn partial_cmp(&self, other: &Self) -> Option<std::cmp::Ordering> {
+        other.score.partial_cmp(&self.score)
+    }
+}
+
+impl Ord for State {
+    fn cmp(&self, other: &Self) -> std::cmp::Ordering {
+        other.score.cmp(&self.score)
+    }
 }
 
 impl From<u8> for Cell {
@@ -65,16 +85,29 @@ fn do_it(input: Vec<String>) -> (DenseField<Cell>, HashSet<IPoint>) {
         .find(|p| matches!(field.get(*p).value, CellValue::Start))
         .unwrap();
 
-    let mut heads = VecDeque::new();
-    heads.push_back((start, Dirn::Left, 0, Vec::new()));
+    // let mut heads = VecDeque::new();
+    let mut heads = BinaryHeap::new();
+    heads.push(State {
+        head: start,
+        dirn: Dirn::Left,
+        score: 0,
+        route: Vec::new(),
+    });
+
     // start east
     let mut best_end = usize::MAX;
     let mut best_cells = HashSet::new();
 
     // Depth first, straight line first.
-    while let Some((head, dirn, score, mut visited)) = heads.pop_back() {
+    while let Some(State {
+        head,
+        dirn,
+        score,
+        mut route,
+    }) = heads.pop()
+    {
         // println!("Depth: {}", heads.len());
-        // println!("{:?}, {:?}, {:?}", head, dirn, score);
+        println!("{:?}, {:?}, {:?}", head, dirn, score);
         // print_field(&field);
 
         // Update score for where we are.
@@ -96,35 +129,45 @@ fn do_it(input: Vec<String>) -> (DenseField<Cell>, HashSet<IPoint>) {
             *lowest = score;
         }
 
-        visited.push(head);
+        route.push(head);
 
         if field.get(head).value == CellValue::End {
             println!("End! {}", score);
             best_end = score;
             // Add ALL cells from this best route.
-            best_cells.extend(visited);
+            best_cells.extend(route);
             continue;
         }
 
         let left = dirn.anticlockwise();
         if field.get(head + left.as_point()).value != CellValue::Wall {
-            heads.push_back((head + left.as_point(), left, score + 1001, visited.clone()));
+            heads.push(State {
+                head: head + left.as_point(),
+                dirn: left,
+                score: score + 1001,
+                route: route.clone(),
+            });
         }
 
         let right = dirn.clockwise();
         if field.get(head + right.as_point()).value != CellValue::Wall {
-            heads.push_back((
-                head + right.as_point(),
-                right,
-                score + 1001,
-                visited.clone(),
-            ));
+            heads.push(State {
+                head: head + right.as_point(),
+                dirn: right,
+                score: score + 1001,
+                route: route.clone(),
+            });
         }
 
         let forward = head + dirn.as_point();
         let forward_cell = field.get(forward).clone();
         if forward_cell.value != CellValue::Wall {
-            heads.push_back((forward, dirn, score + 1, visited.clone()));
+            heads.push(State {
+                head: forward,
+                dirn,
+                score: score + 1,
+                route: route.clone(),
+            });
         }
     }
     (field, best_cells)
@@ -164,7 +207,7 @@ fn print_best(field: &DenseField<Cell>, best_cells: &HashSet<IPoint>) {
                         ' '
                     }
                 }
-                CellValue::Wall => '█',
+                CellValue::Wall => '#',
             };
             print!("{}", ch)
         }
