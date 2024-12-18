@@ -1,6 +1,7 @@
 use std::{
     fmt::{Debug, Display},
     mem,
+    ops::Bound,
 };
 
 use crate::two::Point;
@@ -15,6 +16,29 @@ pub struct DenseField<T> {
     width: isize,
     height: isize,
     data: Vec<T>,
+}
+
+pub trait Space {
+    fn normalize(&self, p: IPoint, width: isize, height: isize) -> Option<IPoint>;
+}
+
+pub struct Torus;
+pub struct Bounded;
+
+impl Space for Torus {
+    fn normalize(&self, p: IPoint, width: isize, height: isize) -> Option<IPoint> {
+        Some(p.wrapped(width, height))
+    }
+}
+
+impl Space for Bounded {
+    fn normalize(&self, p: IPoint, width: isize, height: isize) -> Option<IPoint> {
+        if (0..width).contains(&p.x) && (0..height).contains(&p.y) {
+            Some(p)
+        } else {
+            None
+        }
+    }
 }
 
 impl<T: Clone> DenseField<T> {
@@ -112,61 +136,50 @@ impl<T> DenseField<T> {
 
     /// `get` but x and y are wrapped around like a torus.
     pub fn wrapping_get(&self, p: IPoint) -> (&T, Point<isize>) {
-        let x = p.x % self.width;
-        let x = if x < 0 { self.width + x } else { x };
-        let y = p.y % self.height;
-        let y = if y < 0 { self.height + y } else { y };
-        (&self.data[(y * self.width + x) as usize], Point::new(x, y))
+        let w = p.wrapped(self.width, self.height);
+        (&self.data[(w.y * self.width + w.x) as usize], w)
     }
 
     /// `get` but x and y are wrapped around like a torus.
     pub fn wrapping_get_mut(&mut self, p: IPoint) -> (&mut T, Point<isize>) {
-        let x = p.x % self.width;
-        let x = if x < 0 { self.width + x } else { x };
-        let y = p.y % self.height;
-        let y = if y < 0 { self.height + y } else { y };
-        (
-            &mut self.data[(y * self.width + x) as usize],
-            Point::new(x, y),
-        )
+        let w = p.wrapped(self.width, self.height);
+        (&mut self.data[(w.y * self.width + w.x) as usize], w)
+    }
+
+    pub fn neighbours8<S>(&self, p: IPoint, space: S) -> impl Iterator<Item = (&T, Point<isize>)>
+    where
+        S: Space,
+    {
+        let Point { x, y } = p;
+        let p = |x, y| {
+            let w = space.normalize(pt(x, y), self.width, self.height);
+            w.map(|p| (self.get(p), p))
+        };
+
+        [
+            p(x - 1, y - 1),
+            p(x, y - 1),
+            p(x + 1, y - 1),
+            p(x - 1, y),
+            p(x + 1, y),
+            p(x - 1, y + 1),
+            p(x, y + 1),
+            p(x + 1, y + 1),
+        ]
+        .into_iter()
+        .flatten()
     }
 
     /// Return the list of the eight possible neighbours around this point.
     /// Points outside of the field are not returned. Each value contains the
     /// neighbout value and the point of that neighbour.
     pub fn neighbours8_bounded(&self, p: IPoint) -> impl Iterator<Item = (&T, Point<isize>)> {
-        let Point { x, y } = p;
-        let p = |x, y| (self.try_get(pt(x, y)), Point::new(x, y));
-        [
-            p(x - 1, y - 1),
-            p(x, y - 1),
-            p(x + 1, y - 1),
-            p(x - 1, y),
-            p(x + 1, y),
-            p(x - 1, y + 1),
-            p(x, y + 1),
-            p(x + 1, y + 1),
-        ]
-        .into_iter()
-        .filter_map(|(nei, p)| nei.map(|nei| (nei, p)))
+        self.neighbours8(p, Bounded)
     }
 
     /// Return neighbours as if the field is the surface of a torus.
     pub fn neighbours8_torus(&self, p: IPoint) -> impl Iterator<Item = (&T, Point<isize>)> {
-        let Point { x, y } = p;
-        let p = |x, y| self.wrapping_get(pt(x, y));
-
-        [
-            p(x - 1, y - 1),
-            p(x, y - 1),
-            p(x + 1, y - 1),
-            p(x - 1, y),
-            p(x + 1, y),
-            p(x - 1, y + 1),
-            p(x, y + 1),
-            p(x + 1, y + 1),
-        ]
-        .into_iter()
+        self.neighbours8(p, Torus)
     }
 
     /// Up down left right neighbours

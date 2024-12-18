@@ -1,4 +1,4 @@
-use std::ops::{Add, AddAssign, Mul, Neg, Sub};
+use std::ops::{Add, AddAssign, Mul, Neg, Rem, Sub};
 
 pub type IPoint = Point<isize>;
 
@@ -8,6 +8,9 @@ pub trait Num:
     + AddAssign<Self>
     + Sub<Self, Output = Self>
     + Mul<Self, Output = Self>
+    + Rem<Self, Output = Self>
+    + PartialOrd<Self>
+    + Default
 {
 }
 
@@ -18,6 +21,11 @@ pub const LEFT: IPoint = pt(-1, 0);
 pub const RIGHT: IPoint = pt(1, 0);
 pub const UP: IPoint = pt(0, -1);
 pub const DOWN: IPoint = pt(0, 1);
+
+pub const WEST: IPoint = LEFT;
+pub const EAST: IPoint = RIGHT;
+pub const NORTH: IPoint = UP;
+pub const SOUTH: IPoint = DOWN;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub enum Dirn {
@@ -99,6 +107,14 @@ impl<T: Num> Point<T> {
 
     pub fn norm_squared(&self) -> T {
         self.x * self.x + self.y * self.y
+    }
+
+    pub fn wrapped(&self, width: T, height: T) -> Self {
+        let x = self.x % width;
+        let x = if x < T::default() { width + x } else { x };
+        let y = self.y % height;
+        let y = if y < T::default() { height + y } else { y };
+        Self { x, y }
     }
 }
 
