@@ -89,7 +89,7 @@ fn do_it(input: Vec<String>) -> (DenseField<Cell>, HashSet<IPoint>) {
     let mut heads = BinaryHeap::new();
     heads.push(State {
         head: start,
-        dirn: Dirn::Left,
+        dirn: Dirn::Right,
         score: 0,
         route: Vec::new(),
     });
