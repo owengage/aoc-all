@@ -1,25 +1,17 @@
 use core::panic;
-use std::{
-    collections::{HashMap, VecDeque},
-    usize,
-};
+use std::collections::{HashMap, VecDeque};
 
 use aoc::{
     fetch_input, lines,
-    two::{pt, DenseField, IPoint},
+    two::{DenseField, IPoint},
 };
-use itertools::Itertools;
 
 #[derive(Debug, Clone, PartialEq)]
 enum Cell {
     Start,
-    End {
-        lowest: HashMap<Option<(IPoint, IPoint)>, usize>,
-    },
+    End,
     Wall,
-    Empty {
-        lowest: HashMap<Option<(IPoint, IPoint)>, usize>,
-    },
+    Empty,
 }
 
 impl From<u8> for Cell {
@@ -27,12 +19,8 @@ impl From<u8> for Cell {
         match value {
             b'#' => Cell::Wall,
             b'S' => Cell::Start,
-            b'E' => Cell::End {
-                lowest: Default::default(),
-            },
-            b'.' => Cell::Empty {
-                lowest: Default::default(),
-            },
+            b'E' => Cell::End,
+            b'.' => Cell::Empty,
             _ => panic!(),
         }
     }
@@ -41,7 +29,6 @@ impl From<u8> for Cell {
 struct Head {
     p: IPoint,
     time: usize,
-    cheat: Option<(IPoint, IPoint)>,
 }
 
 fn main() {
@@ -49,150 +36,108 @@ fn main() {
     // out when best to cheat. DFS/BFS is probably the way.
     let field = DenseField::<Cell>::from_lines(lines(fetch_input(2024, 20)));
     let start = field.find(&Cell::Start).unwrap();
-    let end = field
-        .find(&Cell::End {
-            lowest: Default::default(),
-        })
-        .unwrap();
+    let end = field.find(&Cell::End).unwrap();
 
-    let no_cheat = fastest_time(
-        field.clone(),
-        Head {
-            p: start,
-            time: 0,
-            // pretend we've already cheated to disable it this run.
-            cheat: Some((pt(0, 0), pt(0, 0))),
-        },
-        usize::MAX,
-    );
-    let fastest_no_cheat = match no_cheat.get(end) {
-        Cell::End { lowest } => *lowest.get(&Some((pt(0, 0), pt(0, 0)))).unwrap(),
-        _ => panic!(),
-    };
+    let time_to_end = find_times(&field, start);
+    let time_to_start = find_times(&field, end);
+    let no_cheat_time = *time_to_end.get(end);
+    assert_eq!(9432, no_cheat_time);
 
-    assert_eq!(9432, fastest_no_cheat);
+    let part1 = count_cheats(&time_to_start, &time_to_end, no_cheat_time, 2);
+    println!("part1 = {part1}");
 
-    dbg!(fastest_no_cheat);
-
-    let cheats = fastest_time(
-        field.clone(),
-        Head {
-            p: start,
-            time: 0,
-            cheat: None,
-        },
-        fastest_no_cheat - 100,
-    );
-
-    let counts = match cheats.get(end) {
-        Cell::End { lowest } => lowest.iter().map(|(_, t)| fastest_no_cheat - t).counts(),
-        _ => panic!(),
-    };
-
-    let counts = counts.into_iter().sorted_by_key(|p| p.0).collect_vec();
-
-    println!(
-        "part2 = {}",
-        counts.into_iter().map(|kv| kv.1).sum::<usize>()
-    );
+    let part2 = count_cheats(&time_to_start, &time_to_end, no_cheat_time, 20);
+    println!("part2 = {part2}");
 }
 
-fn fastest_time(mut field: DenseField<Cell>, start: Head, cutoff: usize) -> DenseField<Cell> {
+fn count_cheats(
+    time_to_start: &DenseField<usize>,
+    time_to_end: &DenseField<usize>,
+    no_cheat_time: usize,
+    max_cheat: usize,
+) -> usize {
+    let part2: usize = find_cheats(time_to_start, time_to_end, max_cheat)
+        .into_iter()
+        .map(|(time, count)| {
+            let time_saved = no_cheat_time.saturating_sub(time);
+            if time_saved >= 100 {
+                count
+            } else {
+                0
+            }
+        })
+        .sum();
+    part2
+}
+
+fn find_cheats(
+    time_to_start: &DenseField<usize>,
+    time_to_end: &DenseField<usize>,
+    max_cheat: usize,
+) -> HashMap<usize, usize> {
+    let mut cheats = HashMap::new();
+
+    for cheat_start in time_to_start.points() {
+        for cheat_end in time_to_start.points() {
+            let cheat_time = cheat_start.taxicab_dist(cheat_end);
+            if cheat_time > max_cheat {
+                continue;
+            }
+
+            let to_start = *time_to_start.get(cheat_start);
+            let to_end = *time_to_end.get(cheat_end);
+
+            // start/end must be reachable without cheats.
+            if to_start == usize::MAX || to_end == usize::MAX {
+                continue;
+            }
+
+            let total_time = to_start + cheat_time + to_end;
+
+            // Increment count of how much we've saved this much time.
+            *cheats.entry(total_time).or_default() += 1;
+        }
+    }
+
+    cheats
+}
+
+fn find_times(field: &DenseField<Cell>, start: IPoint) -> DenseField<usize> {
+    let mut times = DenseField::new(field.width(), field.height(), usize::MAX);
+    *times.get_mut(start) = 0;
+
     let mut q = VecDeque::new();
-    q.push_back(start);
+    q.push_back(Head { p: start, time: 0 });
 
     while let Some(head) = q.pop_back() {
-        let ns = field
-            .neighbours4_bounded(head.p)
-            .map(|(nc, np)| np)
-            .collect_vec();
-
-        if head.time > cutoff {
-            // skip
-            continue;
-        }
-
-        for np in ns {
-            let nc = field.get_mut(np);
-
+        for (nc, np) in field.neighbours4_bounded(head.p) {
             match nc {
-                Cell::Start => {} // don't go back to the start...
-                Cell::End { lowest } => {
-                    let low = lowest.entry(head.cheat).or_insert(usize::MAX);
-                    if head.time + 1 < *low {
-                        *low = head.time + 1;
-                    }
-                    println!("Found end {:?}, {}", head.cheat, *low);
-                }
-                Cell::Wall => {
-                    if head.cheat.is_none() {
-                        // We can potentially cheat here.
-                        let cheat_start = head.p;
-                        // From this neighbour we need to find the cheat end.
-                        // This will be the neighbours of this point that are
-                        // 'empty'.
-                        let cheat_ns = field
-                            .neighbours4_bounded(np)
-                            .map(|(nc, np)| np)
-                            .collect_vec();
-
-                        for np in cheat_ns {
-                            let nc = field.get_mut(np);
-                            match nc {
-                                Cell::End { lowest } => {
-                                    let cheat = Some((cheat_start, np));
-                                    let low = lowest.entry(cheat).or_insert(usize::MAX);
-                                    if head.time + 2 < *low {
-                                        *low = head.time + 2;
-                                    }
-                                    println!("Found cheat end {:?}, {}", cheat, *low);
-                                }
-                                Cell::Empty { lowest } => {
-                                    // we can land here for our cheat.
-                                    let cheat = Some((cheat_start, np));
-                                    let low = lowest.entry(cheat).or_insert(usize::MAX);
-                                    if head.time + 2 < *low {
-                                        *low = head.time + 2;
-                                    }
-                                    q.push_back(Head {
-                                        p: np,
-                                        time: head.time + 2,
-                                        cheat,
-                                    });
-                                }
-                                _ => {} // anything other than a empty/end we don't care about.
-                            }
-                        }
-                    }
-                }
-                Cell::Empty { lowest } => {
-                    let low = lowest.entry(head.cheat).or_insert(usize::MAX);
-
-                    if head.time + 1 < *low {
-                        *low = head.time + 1;
+                Cell::Start | Cell::End | Cell::Empty => {
+                    // we can go here.
+                    if head.time + 1 < *times.get(np) {
                         q.push_back(Head {
                             p: np,
                             time: head.time + 1,
-                            cheat: head.cheat,
                         });
+                        *times.get_mut(np) = head.time + 1;
                     }
                 }
+                Cell::Wall => {}
             }
         }
     }
 
-    field
+    times
 }
 
 #[cfg(test)]
 mod test {
     use aoc::{
-        lines, lines_from_str,
+        lines_from_str,
         two::{pt, DenseField},
     };
-    use itertools::Itertools;
 
-    use crate::{fastest_time, Cell, Head};
+    use crate::{find_cheats, find_times, Cell};
 
     #[test]
     fn test_parse() {
@@ -213,33 +158,53 @@ mod test {
 ###############"#;
         let field = DenseField::<Cell>::from_lines(lines_from_str(input));
         let start = field.find(&Cell::Start).unwrap();
-        let end = field
-            .find(&Cell::End {
-                lowest: Default::default(),
+        let end = field.find(&Cell::End).unwrap();
+
+        let time_to_end = find_times(&field, start);
+        let time_to_start = find_times(&field, end);
+        let no_cheat_time = *time_to_end.get(end);
+
+        assert_eq!(84, no_cheat_time);
+
+        for y in 0..field.height() {
+            for x in 0..field.width() {
+                let val = *time_to_start.get(pt(x, y));
+                if val == usize::MAX {
+                    print!(" ###");
+                } else if val > 999 {
+                    print!(" ...");
+                } else {
+                    print!("{:4}", val);
+                }
+            }
+            println!()
+        }
+
+        for y in 0..field.height() {
+            for x in 0..field.width() {
+                let val = *time_to_end.get(pt(x, y));
+                if val == usize::MAX {
+                    print!(" ###");
+                } else if val > 999 {
+                    print!(" ...");
+                } else {
+                    print!("{:4}", val);
+                }
+            }
+            println!()
+        }
+
+        let _: usize = find_cheats(&time_to_start, &time_to_end, 2)
+            .into_iter()
+            .map(|(time, count)| {
+                let time_saved = no_cheat_time.saturating_sub(time);
+                if time_saved >= 1 {
+                    println!("{count} ways to save {time_saved}");
+                    count
+                } else {
+                    0
+                }
             })
-            .unwrap();
-
-        let no_cheat = fastest_time(
-            field.clone(),
-            Head {
-                p: start,
-                time: 0,
-                cheat: None,
-            },
-            84 - 2,
-        );
-
-        let counts = match no_cheat.get(end) {
-            Cell::End { lowest } => lowest.iter().map(|(_, t)| 84 - t).counts(),
-            _ => panic!(),
-        };
-
-        let counts = counts.into_iter().sorted_by_key(|p| p.0).collect_vec();
-
-        println!("{:?}", counts);
-        println!(
-            "part2 = {}",
-            counts.into_iter().map(|kv| kv.1).sum::<usize>()
-        );
+            .sum();
     }
 }
