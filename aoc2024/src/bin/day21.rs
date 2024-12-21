@@ -1,5 +1,8 @@
 use core::panic;
-use std::collections::HashSet;
+use std::{
+    collections::{HashSet, VecDeque},
+    usize,
+};
 
 use aoc::{
     fetch_input, lines,
@@ -13,6 +16,53 @@ use aoc::{
 // That worked but now there's 25 robots! I think I'll need to resort to a tree
 // search and do tree pruning. If I do depth first I can prune any branches that
 // end up longer than the current shortest code.
+
+// Well that doesn't work because the strings get uncontrollably large. Assuming
+// you only need to make 2 moves (minimum) to make each digit of the previous
+// layer you're talking a 2^25 size string, ie several megabytes for a single
+// string.
+//
+// So how do we solve this without actually having the string? Always returning
+// to A seems like a hint. To type a single direction on layer N, we need to
+// move from A on layer N to our direction, then press A on layer N+1.
+//
+// starting at A... ^A on layer N
+//                  <A>A on N+1 ... start and finish on A.
+//                  <A>AvA^A on N+2
+//
+// So for any xxxA we know the next layer will start at A and return to A. There
+// will be a singular optimal way to do this surely. AND it means the order
+// isn't important? Can we count these?
+//
+// For A optimal on next layer is A.
+// For ^A, optimal on next layer is <A >A.
+// For <A, optimal on next layer is v<<A >>^A
+// For v<<A, optimal on next layer is <vA <A A >>^A
+//
+// I still don't understand how we're getting non-optimal solutions, ever.
+
+// Try 3 to 5
+//  ^<A      or                 <^A
+//  <Av<A>>^A                   v<<A>^A>A
+//  v<<A>>^Av<A<A>>^AvAA<^A>A   v<A<AA>>^AvA<^A>AvA^A
+//
+//  v<<A>>^A<vA<A>>^AvAA<^A>A   v<A<AA>>^AvA<^A>AvA^A
+//
+// <^A
+// 1x v<<A      1x >^A      1x >A
+//
+// 1x <vA    1x <A    1x A    1x >>^A
+// 2x vA     1x <^A   1x >A
+//           1x ^A
+
+// Feels sensible but still don't understand how non-optimals snuck in. Feel
+// like that will bite me.
+
+#[derive(Debug, Clone)]
+struct Node {
+    depth: usize,
+    value: String,
+}
 
 fn main() {
     let codes = lines(fetch_input(2024, 21));
@@ -36,27 +86,42 @@ fn main() {
     // bottom one? Try and make this in such a way that I can generalise to a
     // pad of a pad next.
 
-    let code = &codes[0];
     let mut part1 = 0;
 
     for code in codes {
-        let moves_for_keypad = shortest_for_keypad(&code);
+        let mut q: VecDeque<_> = shortest_for_keypad(&code)
+            .into_iter()
+            .map(|s| Node { value: s, depth: 0 })
+            .collect();
 
-        let mut opts = moves_for_keypad;
+        let mut shortest = usize::MAX;
 
-        for _ in 0..2 {
-            let mut new_opts = HashSet::new();
-            for opt in &opts {
-                new_opts.extend(shortest_for_dirpad(opt));
+        while let Some(Node { value, depth }) = q.pop_back() {
+            if depth == 3 {
+                if value.len() < shortest {
+                    shortest = value.len();
+                    println!("new shortest: {shortest}");
+                }
+                continue;
             }
-            opts = new_opts;
-        }
 
-        let shortest = opts.iter().min_by_key(|s| s.len()).unwrap();
+            // Don't bother if it's already longer than shortest we've found.
+            if value.len() >= shortest {
+                continue;
+            }
+
+            let nexts = shortest_for_dirpad(&value);
+            for next in nexts {
+                q.push_back(Node {
+                    depth: depth + 1,
+                    value: next,
+                });
+            }
+        }
 
         let num: String = code.chars().filter(|c| c.is_ascii_digit()).collect();
         let num: usize = num.parse().unwrap();
-        let complexity = shortest.len() * num;
+        let complexity = shortest * num;
         part1 += complexity;
         println!("{code}, {complexity}: {shortest}");
     }
