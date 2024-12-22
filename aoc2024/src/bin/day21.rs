@@ -1,6 +1,6 @@
 use core::panic;
 use std::{
-    collections::{HashSet, VecDeque},
+    collections::{HashMap, HashSet, VecDeque},
     usize,
 };
 
@@ -8,6 +8,7 @@ use aoc::{
     fetch_input, lines,
     two::{pt, IPoint},
 };
+use itertools::Itertools;
 
 // What if I instead made all options to get from X to Y and passed those up and
 // up, finally selecting the last one? Will part 2 screw me? Maybe just x then
@@ -58,172 +59,146 @@ use aoc::{
 // Feels sensible but still don't understand how non-optimals snuck in. Feel
 // like that will bite me.
 
-#[derive(Debug, Clone)]
-struct Node {
-    depth: usize,
-    value: String,
-}
+// Stolen from reddit :(   < before v before ^ before >
 
 fn main() {
     let codes = lines(fetch_input(2024, 21));
-    // +---+---+---+
-    // | 7 | 8 | 9 |
-    // +---+---+---+
-    // | 4 | 5 | 6 |
-    // +---+---+---+
-    // | 1 | 2 | 3 |
-    // +---+---+---+
-    //     | 0 | A |
-    //     +---+---+
 
-    //     +---+---+
-    //     | ^ | A |
-    // +---+---+---+
-    // | < | v | > |
-    // +---+---+---+
+    let part1 = do_it(&codes, 2);
+    println!("part1 = {part1}");
+    assert_eq!(part1, 157892);
 
-    // Given a code to type on the top pad, what directions do I need on the
-    // bottom one? Try and make this in such a way that I can generalise to a
-    // pad of a pad next.
+    let part2 = do_it(&codes, 25);
+    println!("part2 = {part2}");
+}
 
-    let mut part1 = 0;
+fn do_it(codes: &[String], depth: usize) -> usize {
+    let mut sum_complexity = 0;
 
     for code in codes {
-        let mut q: VecDeque<_> = shortest_for_keypad(&code)
-            .into_iter()
-            .map(|s| Node { value: s, depth: 0 })
-            .collect();
+        let mut collapsed = HashMap::new();
 
-        let mut shortest = usize::MAX;
+        let mut expanded = shortest_for_keypad(code);
+        collapse(&mut collapsed, &expanded, 1);
 
-        while let Some(Node { value, depth }) = q.pop_back() {
-            if depth == 3 {
-                if value.len() < shortest {
-                    shortest = value.len();
-                    println!("new shortest: {shortest}");
-                }
-                continue;
+        for _ in 0..depth {
+            let mut new_collapsed = HashMap::new();
+            for (part, count) in collapsed {
+                expanded = shortest_for_dirpad(&part);
+                collapse(&mut new_collapsed, &expanded, count);
             }
 
-            // Don't bother if it's already longer than shortest we've found.
-            if value.len() >= shortest {
-                continue;
-            }
-
-            let nexts = shortest_for_dirpad(&value);
-            for next in nexts {
-                q.push_back(Node {
-                    depth: depth + 1,
-                    value: next,
-                });
-            }
+            collapsed = new_collapsed;
         }
+
+        let len: usize = collapsed
+            .iter()
+            .map(|(part, count)| count * part.len())
+            .sum();
 
         let num: String = code.chars().filter(|c| c.is_ascii_digit()).collect();
         let num: usize = num.parse().unwrap();
-        let complexity = shortest * num;
-        part1 += complexity;
-        println!("{code}, {complexity}: {shortest}");
+        let complexity = len * num;
+        sum_complexity += complexity;
+        // println!("{code}, {complexity}: {len}");
     }
 
-    assert_eq!(part1, 157892);
-    println!("part1 = {part1}");
+    sum_complexity
 }
 
-fn shortest_for_keypad(code: &str) -> HashSet<String> {
+fn collapse(collapsed: &mut HashMap<String, usize>, code: &str, count: usize) {
+    // strip the final A as this causes the split to see an erronous final 'A'
+    let code = code.strip_suffix("A").unwrap();
+    for part in code.split('A') {
+        *collapsed.entry(part.to_string() + "A").or_default() += count;
+    }
+}
+
+fn shortest_for_keypad(code: &str) -> String {
     let mut it = code.chars();
     let mut current = it.next().unwrap();
-    let mut moves: HashSet<String> = moves_keypad('A', current).into_iter().collect();
+
+    let mut moves = moves_keypad('A', current);
 
     for ch in it {
-        let m = moves_keypad(current, ch);
+        moves.push_str(&moves_keypad(current, ch));
         current = ch;
-
-        let mut new_moves = HashSet::new();
-
-        for prev in moves {
-            for ap in &m {
-                new_moves.insert(prev.clone() + ap.as_str());
-            }
-        }
-
-        moves = new_moves;
     }
 
     moves
 }
 
-fn shortest_for_dirpad(code: &str) -> HashSet<String> {
+fn shortest_for_dirpad(code: &str) -> String {
     let mut it = code.chars();
     let mut current = it.next().unwrap();
-    let mut moves: HashSet<String> = moves_dirpad('A', current).into_iter().collect();
+
+    let mut moves = moves_dirpad('A', current);
 
     for ch in it {
-        let m = moves_dirpad(current, ch);
+        moves.push_str(&moves_dirpad(current, ch));
         current = ch;
-
-        let mut new_moves = HashSet::new();
-
-        for prev in moves {
-            for ap in &m {
-                new_moves.insert(prev.clone() + ap.as_str());
-            }
-        }
-
-        moves = new_moves;
     }
 
     moves
 }
 
-fn moves_keypad(current: char, dest: char) -> Vec<String> {
-    let mut moves = vec![];
+fn moves_keypad(current: char, dest: char) -> String {
     let start = keypad_to_point(current);
     let end = keypad_to_point(dest);
 
+    let mut m = String::new();
+
     if start.y == 3 && end.x == 0 {
-        let mut m1 = String::new();
-        movey(&mut m1, &end.y, &start.y);
-        movex(&mut m1, &end.x, &start.x);
-        moves.push(m1 + "A");
+        movey(&mut m, &end.y, &start.y);
+        movex(&mut m, &end.x, &start.x);
+        m.push('A');
+        m
     } else {
-        let mut m = String::new();
-        movex(&mut m, &end.x, &start.x);
-        movey(&mut m, &end.y, &start.y);
-        moves.push(m + "A");
+        if end.x < start.x {
+            // left
+            movex(&mut m, &end.x, &start.x);
+        }
 
-        let mut m = String::new();
         movey(&mut m, &end.y, &start.y);
-        movex(&mut m, &end.x, &start.x);
-        moves.push(m + "A");
+
+        if end.x > start.x {
+            // right
+            movex(&mut m, &end.x, &start.x);
+        }
+
+        m.push('A');
+        m
     }
-
-    moves
 }
 
-fn moves_dirpad(current: char, dest: char) -> Vec<String> {
-    let mut moves = vec![];
+fn moves_dirpad(current: char, dest: char) -> String {
+    // < before v before ^ before >
     let start = dirpad_to_point(current);
     let end = dirpad_to_point(dest);
 
+    // We would go through the empty slot.
+    let mut m = String::new();
     if start.y == 0 && end.x == 0 {
-        let mut m1 = String::new();
-        movey(&mut m1, &end.y, &start.y);
-        movex(&mut m1, &end.x, &start.x);
-        moves.push(m1 + "A");
+        movey(&mut m, &end.y, &start.y);
+        movex(&mut m, &end.x, &start.x);
+        m.push('A');
+        m
     } else {
-        let mut m = String::new();
-        movex(&mut m, &end.x, &start.x);
-        movey(&mut m, &end.y, &start.y);
-        moves.push(m + "A");
+        if end.x < start.x {
+            // left
+            movex(&mut m, &end.x, &start.x);
+        }
 
-        let mut m = String::new();
         movey(&mut m, &end.y, &start.y);
-        movex(&mut m, &end.x, &start.x);
-        moves.push(m + "A");
+
+        if end.x > start.x {
+            // right
+            movex(&mut m, &end.x, &start.x);
+        }
+
+        m.push('A');
+        m
     }
-
-    moves
 }
 
 fn movex(moves: &mut String, end_x: &isize, start_x: &isize) {
@@ -262,22 +237,6 @@ fn keypad_to_point(dest: char) -> IPoint {
     // +---+---+---+
     //     | 0 | A |
     //     +---+---+
-
-    // Try 3 to 5
-    //  ^<A      or                 <^A
-    //  <Av<A>>^A                   v<<A>^A>A
-    //  v<<A>>^Av<A<A>>^AvAA<^A>A   v<A<AA>>^AvA<^A>AvA^A
-    //
-    //  v<<A>>^A<vA<A>>^AvAA<^A>A   v<A<AA>>^AvA<^A>AvA^A
-    //
-    // above shows to stick to a given direction as much as possible.
-    //
-
-    //     +---+---+
-    //     | ^ | A |
-    // +---+---+---+
-    // | < | v | > |
-    // +---+---+---+
     match dest {
         '7' => pt(0, 0),
         '8' => pt(1, 0),
@@ -378,10 +337,5 @@ mod test {
             "{}",
             shortest_for_dirpad(&shortest_for_dirpad(&shortest_for_keypad("379A")))
         );
-
-        assert_eq!(
-            shortest_for_dirpad(&shortest_for_dirpad(&shortest_for_keypad("379A"))),
-            "<v<A>>^AvA^A<vA<AA>>^AAvA<^A>AAvA^A<vA>^AA<A>A<v<A>A>^AAAvA<^A>A"
-        )
     }
 }
