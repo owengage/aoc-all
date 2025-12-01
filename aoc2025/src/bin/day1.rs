@@ -35,7 +35,9 @@ fn main() {
             "R" => dial += num,
             _ => panic!("{}, {}", dir, num),
         }
-        dial = ((dial % 100) + 100) % 100;
+
+        // We know dial can only be [-99,198] since we modulo'd `num`.
+        dial = (dial + 100) % 100;
 
         part1 += (dial == 0) as usize;
     }
