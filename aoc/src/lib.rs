@@ -110,6 +110,7 @@ pub fn fetch_input(year: usize, day: usize) -> PathBuf {
     let _ = create_dir_all(format!("{input_dir}/{year}"));
 
     let api_key = env::var("AOC_KEY").unwrap();
+    let user_agent = env::var("AOC_USER_AGENT").unwrap();
     let url = format!("https://adventofcode.com/{year}/day/{day}/input");
     println!("Fetching {url}");
 
@@ -117,6 +118,7 @@ pub fn fetch_input(year: usize, day: usize) -> PathBuf {
     let resp = client
         .request(Method::GET, url)
         .header("Cookie", format!("session={}", api_key.trim()))
+        .header("User-Agent", user_agent.trim()) // as requested by AOC owner.
         .send()
         .unwrap();
 

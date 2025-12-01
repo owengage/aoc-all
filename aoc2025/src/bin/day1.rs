@@ -37,9 +37,7 @@ fn main() {
         }
         dial = ((dial % 100) + 100) % 100;
 
-        if dial == 0 {
-            part1 += 1;
-        }
+        part1 += (dial == 0) as usize;
     }
 
     println!("part1 = {}", part1);
