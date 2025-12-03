@@ -37,7 +37,7 @@ fn main() {
         }
 
         // We know dial can only be [-99,198] since we modulo'd `num`.
-        dial = (dial + 100) % 100;
+        dial = dial.rem_euclid(100);
 
         part1 += (dial == 0) as usize;
     }

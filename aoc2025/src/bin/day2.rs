@@ -54,9 +54,10 @@ fn part2(input: &[(usize, usize)]) -> usize {
 
             for unit in unit_min..unit_max {
                 let mut r = 2;
+                let unit_str = unit.to_string();
 
                 while unit_len * r <= high_len {
-                    let id: usize = unit.to_string().repeat(r).parse().unwrap();
+                    let id: usize = unit_str.repeat(r).parse().unwrap();
 
                     if (low..=high).contains(&id) {
                         ids.insert(id);
