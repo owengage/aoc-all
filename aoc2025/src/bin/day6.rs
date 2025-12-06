@@ -23,9 +23,11 @@ fn main() {
 
     let part1 = part1(&numbers, &ops);
     println!("part1 = {}", part1);
+    assert_eq!(part1, 6725216329103);
 
     let part2 = part2(&input);
     println!("part2 = {}", part2);
+    assert_eq!(part2, 10600728112865);
 }
 
 fn part2(input: &[String]) -> usize {
@@ -38,17 +40,16 @@ fn part2(input: &[String]) -> usize {
     let mut current_nums = vec![];
     let mut current_op = b' ';
 
+    let calc = |current_nums: &[usize], current_op: u8| match current_op {
+        b'+' => current_nums.iter().sum::<usize>(),
+        b'*' => current_nums.iter().product::<usize>(),
+        _ => panic!(),
+    };
+
     loop {
         if col == input[0].len() {
-            // we've got to the end
-            let ans = match current_op {
-                b'+' => current_nums.iter().sum::<usize>(),
-                b'*' => current_nums.iter().product::<usize>(),
-                _ => panic!(),
-            };
-
-            current_nums.clear();
-            answers.push(ans);
+            // we're done!
+            answers.push(calc(&current_nums, current_op));
             break;
         }
 
@@ -56,37 +57,24 @@ fn part2(input: &[String]) -> usize {
 
         match char {
             b' ' => {}
-            b'0'..=b'9' => {
-                current_num.push(char as char);
-            }
-            b'+' | b'*' => {
-                current_op = char;
-            }
+            b'0'..=b'9' => current_num.push(char as char),
+            b'+' | b'*' => current_op = char,
             _ => panic!("Unknown op '{}'", char as char),
         }
 
         row += 1;
+
         if row == input.len() {
             if current_num.is_empty() {
                 // we didn't see any number in this entire column, must mean
                 // we're moving on to a new problem.
-                let ans = match current_op {
-                    b'+' => current_nums.iter().sum::<usize>(),
-                    b'*' => current_nums.iter().product::<usize>(),
-                    _ => panic!(),
-                };
-
+                let ans = calc(&mut current_nums, current_op);
                 current_nums.clear();
                 answers.push(ans);
-                col += 1;
-                row = 0;
-                current_op = b' ';
-                continue;
+            } else {
+                current_nums.push(current_num.parse().unwrap());
+                current_num.clear();
             }
-
-            let n: usize = current_num.parse().unwrap();
-            current_num.clear();
-            current_nums.push(n);
 
             // move to next column.
             col += 1;
