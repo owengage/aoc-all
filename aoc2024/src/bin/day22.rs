@@ -49,7 +49,7 @@ fn main() {
     let mut max_bananas = 0;
 
     // For each delta...
-    for delta in (0..4).map(|_| (-9..=9)).multi_cartesian_product() {
+    for delta in (0..4).map(|_| -9..=9).multi_cartesian_product() {
         let mut bananas = 0;
         for monkey in &monkeys {
             bananas += monkey.get(&delta[..4]).cloned().unwrap_or_default();

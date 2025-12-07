@@ -1,5 +1,5 @@
 use std::{
-    collections::{BinaryHeap, HashSet, VecDeque},
+    collections::{BinaryHeap, HashSet},
     usize,
 };
 
@@ -95,7 +95,6 @@ fn do_it(input: Vec<String>) -> (DenseField<Cell>, HashSet<IPoint>) {
     });
 
     // start east
-    let mut best_end = usize::MAX;
     let mut best_cells = HashSet::new();
 
     // Depth first, straight line first.
@@ -132,8 +131,6 @@ fn do_it(input: Vec<String>) -> (DenseField<Cell>, HashSet<IPoint>) {
         route.push(head);
 
         if field.get(head).value == CellValue::End {
-            println!("End! {}", score);
-            best_end = score;
             // Add ALL cells from this best route.
             best_cells.extend(route);
             continue;

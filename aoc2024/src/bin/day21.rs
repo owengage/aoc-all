@@ -1,14 +1,10 @@
 use core::panic;
-use std::{
-    collections::{HashMap, HashSet, VecDeque},
-    usize,
-};
+use std::{collections::HashMap, usize};
 
 use aoc::{
     fetch_input, lines,
     two::{pt, IPoint},
 };
-use itertools::Itertools;
 
 // What if I instead made all options to get from X to Y and passed those up and
 // up, finally selecting the last one? Will part 2 screw me? Maybe just x then

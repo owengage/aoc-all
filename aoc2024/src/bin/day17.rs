@@ -213,11 +213,3 @@ fn parse_registers(inputs: &[String]) -> Registers {
         c: p(&inputs[2]),
     }
 }
-
-#[cfg(test)]
-mod test {
-    use aoc::lines_from_str;
-
-    #[test]
-    fn test_parse() {}
-}

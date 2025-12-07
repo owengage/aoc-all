@@ -145,12 +145,6 @@ impl Map {
             }
         }
     }
-
-    fn set(&mut self, p: (isize, isize), c: Cell) {
-        assert!(p.0 >= 0 && (p.0 as usize) < self.width);
-        assert!(p.1 >= 0 && (p.1 as usize) < self.height);
-        self.data[p.1 as usize * self.width + p.0 as usize] = c;
-    }
 }
 
 #[derive(Debug, Clone, Copy, PartialEq)]
@@ -200,15 +194,6 @@ impl Facing {
             Facing::Down => Facing::Up,
             Facing::Left => Facing::Right,
             Facing::Right => Facing::Left,
-        }
-    }
-
-    fn symbol(&self) -> char {
-        match self {
-            Facing::Up => '^',
-            Facing::Down => 'v',
-            Facing::Left => '<',
-            Facing::Right => '>',
         }
     }
 }
@@ -282,23 +267,6 @@ fn get_start_position(map: &Map) -> (isize, isize) {
     }
 
     panic!()
-}
-
-fn print_map(map: &Map) {
-    for y in 0..map.height {
-        print!("{:3}: ", y);
-        for x in 0..map.width {
-            print!(
-                "{}",
-                match map.get((x as isize, y as isize)) {
-                    Cell::Free(c) => c,
-                    Cell::Wall => '#',
-                    Cell::Warp => ' ',
-                }
-            )
-        }
-        println!()
-    }
 }
 
 fn parse(input: &str) -> (Map, Vec<Instr>) {

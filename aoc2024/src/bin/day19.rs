@@ -1,6 +1,6 @@
 use std::collections::HashMap;
 
-use aoc::{fetch_input, line_blocks, lines};
+use aoc::{fetch_input, line_blocks};
 use itertools::Itertools;
 
 fn main() {
