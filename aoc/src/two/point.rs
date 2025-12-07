@@ -2,13 +2,32 @@ use std::ops::{Add, AddAssign, Mul, Neg, Sub};
 
 pub type IPoint = Point<isize>;
 
+/// Number type that has a concept of 'one', or the multiplicative identity.
+pub trait One<T> {
+    fn one() -> T;
+}
+
+/// Number like type.
 pub trait Num:
     Copy
     + Add<Self, Output = Self>
     + AddAssign<Self>
     + Sub<Self, Output = Self>
     + Mul<Self, Output = Self>
+    + One<Self>
 {
+}
+
+impl One<f64> for f64 {
+    fn one() -> f64 {
+        1.0
+    }
+}
+
+impl One<isize> for isize {
+    fn one() -> isize {
+        1
+    }
 }
 
 impl Num for isize {}
@@ -180,6 +199,35 @@ impl Mul<Point<f64>> for f64 {
 
     fn mul(self, rhs: Point<f64>) -> Self::Output {
         rhs * self
+    }
+}
+
+impl<T: Num> Point<T> {
+    pub fn down(self) -> Self {
+        Self {
+            x: self.x,
+            y: self.y + T::one(),
+        }
+    }
+
+    pub fn up(self) -> Self {
+        Self {
+            x: self.x,
+            y: self.y - T::one(),
+        }
+    }
+
+    pub fn left(self) -> Self {
+        Self {
+            x: self.x - T::one(),
+            y: self.y,
+        }
+    }
+    pub fn right(self) -> Self {
+        Self {
+            x: self.x + T::one(),
+            y: self.y,
+        }
     }
 }
 

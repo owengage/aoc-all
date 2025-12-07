@@ -3,7 +3,7 @@ use std::{collections::HashSet, iter};
 
 use aoc::{
     fetch_input, lines,
-    two::{DenseField, IPoint, pt},
+    two::{DenseField, IPoint},
 };
 
 #[derive(Clone, Copy, PartialEq, PartialOrd, Eq, Ord)]
@@ -46,7 +46,7 @@ fn part2(mut field: DenseField<Cell>, start: aoc::two::Point<isize>) -> usize {
 
     // Go one row at a time.
     for head in field.points_row_major() {
-        let below = head + pt(0, 1);
+        let below = head.down();
 
         let &Cell::Beam(beam) = field.get(head) else {
             continue; // if we're not a beam just move on.
@@ -67,10 +67,8 @@ fn part2(mut field: DenseField<Cell>, start: aoc::two::Point<isize>) -> usize {
                         }
                     };
 
-                    let left = below + pt(-1, 0);
-                    let right = below + pt(1, 0);
-                    handle_path(left);
-                    handle_path(right);
+                    handle_path(below.left());
+                    handle_path(below.right());
                 }
                 Cell::Beam(beam2) => *field.get_mut(below) = Cell::Beam(beam + beam2),
                 Cell::Start => panic!(),
@@ -89,7 +87,7 @@ fn part1(mut field: DenseField<Cell>, start: aoc::two::Point<isize>) -> i32 {
     while let Some(&head) = heads.iter().next() {
         heads.remove(&head);
 
-        let below = head + pt(0, 1);
+        let below = head.down();
         match field.try_get(below) {
             Some(c) => match c {
                 Cell::Empty => {
@@ -98,8 +96,8 @@ fn part1(mut field: DenseField<Cell>, start: aoc::two::Point<isize>) -> i32 {
                 }
                 Cell::Splitter => {
                     split_count += 1;
-                    let left = below + pt(-1, 0);
-                    let right = below + pt(1, 0);
+                    let left = below.left();
+                    let right = below.right();
                     field.try_get_mut(left).map(|c| {
                         *c = Cell::Beam(1);
                         heads.insert(left);
