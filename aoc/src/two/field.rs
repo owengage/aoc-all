@@ -220,6 +220,16 @@ impl<T> DenseField<T> {
             current: 0,
         }
     }
+
+    /// Iterate through points going along rows. First will be top left, then
+    /// moing along the row until the next row etc.
+    pub fn points_row_major(&self) -> PointsIter {
+        PointsIter {
+            width: self.width,
+            height: self.height,
+            current: 0,
+        }
+    }
 }
 
 impl<T: From<u8>> DenseField<T> {
@@ -247,6 +257,16 @@ impl<T: From<u8>> DenseField<T> {
             data,
         }
     }
+
+    // TODO: Would allow mutating local variables as we create the field, such
+    // as for finding the start part, without making the cell type actually
+    // understand start points.
+    // pub fn from_lines_with_p(lines: Vec<String>, f: fn(u8, IPoint) -> T) -> Self {
+    //     let bf = Self::from_lines(lines);
+    //     let mut f = DenseField::<T>::new();
+
+    //     for p in bf.points() {}
+    // }
 }
 
 #[derive(Debug)]
