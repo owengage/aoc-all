@@ -12,11 +12,11 @@ struct Vec3 {
 }
 
 impl Vec3 {
-    pub fn distance(self, other: Vec3) -> f64 {
+    pub fn distance_sq(self, other: Vec3) -> isize {
         let dx = self.x - other.x;
         let dy = self.y - other.y;
         let dz = self.z - other.z;
-        return ((dx * dx + dy * dy + dz * dz) as f64).sqrt();
+        return dx * dx + dy * dy + dz * dz;
     }
 }
 
@@ -81,7 +81,7 @@ fn make_pairs(coords: &[Vec3]) -> Vec<(Vec3, Vec3)> {
         .iter()
         .tuple_combinations::<(_, _)>()
         .map(|pair| {
-            let d = pair.0.distance(*pair.1);
+            let d = pair.0.distance_sq(*pair.1);
             (pair, d)
         })
         .sorted_by(|p1, p2| p1.1.partial_cmp(&p2.1).unwrap())
