@@ -1,7 +1,4 @@
-use core::panic;
-use std::{collections::HashSet, mem};
-
-use aoc::{StrExt, fetch_input, lines};
+use aoc::{DisjointSet, StrExt, fetch_input, lines};
 use itertools::Itertools;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
@@ -35,79 +32,50 @@ fn main() {
         })
         .collect_vec();
 
-    let pairs = make_pairs(&coords);
-    let circuits = init_circuits(&coords);
+    let pairs = coords
+        .iter()
+        .enumerate()
+        .tuple_combinations::<(_, _)>()
+        .map(|pair| {
+            let d = pair.0.1.distance_sq(*pair.1.1);
+            (pair.0.0, pair.1.0, d)
+        })
+        .sorted_by(|p1, p2| p1.2.partial_cmp(&p2.2).unwrap())
+        .map(|p| (p.0, p.1))
+        .collect_vec();
 
-    let part1 = part1(&pairs, circuits.clone());
+    let part1 = part1(&coords, &pairs);
     println!("part1 = {part1}");
     assert_eq!(122636, part1);
 
-    let part2 = part2(&pairs, circuits);
+    let part2 = part2(&coords, &pairs);
     println!("part2 = {part2}");
     assert_eq!(9271575747, part2);
 }
 
-fn part1(pairs: &Vec<(Vec3, Vec3)>, mut circuits: Vec<HashSet<Vec3>>) -> usize {
+fn part1(coords: &[Vec3], pairs: &[(usize, usize)]) -> usize {
+    let mut ds = DisjointSet::with_singles(coords.len());
+
     for pair in pairs.iter().take(1000) {
-        connect_pair(&mut circuits, *pair);
+        ds.merge(pair.0, pair.1);
     }
 
-    circuits.sort_by_key(|c| c.len());
-    circuits.iter().rev().map(|c| c.len()).take(3).product()
+    let mut sizes = ds.all_lens();
+    sizes.sort();
+    sizes.iter().rev().take(3).product()
 }
 
-fn part2(pairs: &Vec<(Vec3, Vec3)>, mut circuits: Vec<HashSet<Vec3>>) -> usize {
-    let coord_count = circuits.len();
+fn part2(coords: &[Vec3], pairs: &[(usize, usize)]) -> usize {
+    let mut ds = DisjointSet::with_singles(coords.len());
+
     for pair in pairs {
-        connect_pair(&mut circuits, *pair);
+        ds.merge(pair.0, pair.1);
 
         // Are we now fully connected?
-        if circuits[0].len() == coord_count {
-            return pair.0.x as usize * pair.1.x as usize;
+        if ds.len_of(0) == coords.len() {
+            return coords[pair.0].x as usize * coords[pair.1].x as usize;
         }
     }
 
     panic!("didn't fully connect");
-}
-
-/// Make a circuit for each coordinate.
-fn init_circuits(coords: &Vec<Vec3>) -> Vec<HashSet<Vec3>> {
-    Vec::<HashSet<Vec3>>::from_iter(coords.iter().map(|c| HashSet::from_iter([*c])))
-}
-
-/// Make all pairs of coordinates, sorted from shortest distance to longest.
-fn make_pairs(coords: &[Vec3]) -> Vec<(Vec3, Vec3)> {
-    let pairs = coords
-        .iter()
-        .tuple_combinations::<(_, _)>()
-        .map(|pair| {
-            let d = pair.0.distance_sq(*pair.1);
-            (pair, d)
-        })
-        .sorted_by(|p1, p2| p1.1.partial_cmp(&p2.1).unwrap())
-        .map(|p| (*p.0.0, *p.0.1))
-        .collect_vec();
-    pairs
-}
-
-// Given the existing circuits, connect the given pair if necessary.
-fn connect_pair(circuits: &mut Vec<HashSet<Vec3>>, pair: (Vec3, Vec3)) {
-    let i0 = find_circuit(circuits, pair.0);
-    let i1 = find_circuit(circuits, pair.1);
-
-    // join different circuits
-    if i0 != i1 {
-        let stolen = mem::take(circuits.get_mut(i1).unwrap());
-        circuits.get_mut(i0).unwrap().extend(stolen);
-        circuits.remove(i1);
-    }
-}
-
-// Find index of circuit that coord is in.
-fn find_circuit(circuits: &mut Vec<HashSet<Vec3>>, coord: Vec3) -> usize {
-    circuits
-        .iter()
-        .find_position(|c| c.contains(&coord))
-        .unwrap()
-        .0
 }

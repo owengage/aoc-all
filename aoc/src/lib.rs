@@ -2,7 +2,7 @@ use core::panic;
 use std::{
     env,
     fmt::Debug,
-    fs::{self, create_dir_all, File},
+    fs::{self, File, create_dir_all},
     io::{BufRead, BufReader, Read},
     mem,
     path::{Path, PathBuf},
@@ -11,7 +11,10 @@ use std::{
 
 use reqwest::Method;
 
+mod disjoint_set;
 pub mod two;
+
+pub use disjoint_set::*;
 
 pub fn text(path: impl AsRef<Path>) -> String {
     let mut input = BufReader::new(File::open(path).unwrap());
