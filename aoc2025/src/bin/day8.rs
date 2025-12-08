@@ -1,7 +1,6 @@
 use aoc::{DisjointSet, StrExt, fetch_input, lines};
 use itertools::Itertools;
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
 struct Vec3 {
     x: isize,
     y: isize,
@@ -9,7 +8,7 @@ struct Vec3 {
 }
 
 impl Vec3 {
-    pub fn distance_sq(self, other: Vec3) -> isize {
+    pub fn distance_sq(&self, other: &Vec3) -> isize {
         let dx = self.x - other.x;
         let dy = self.y - other.y;
         let dz = self.z - other.z;
@@ -22,26 +21,18 @@ fn main() {
     let coords = input
         .into_iter()
         .map(|s| {
-            let s = s.as_str();
-            let mut it = s.split_parse::<isize>(",");
-            Vec3 {
-                x: it.next().unwrap(),
-                y: it.next().unwrap(),
-                z: it.next().unwrap(),
-            }
+            let [x, y, z] = s.as_str().split_parse_n::<3, isize>(",");
+            Vec3 { x, y, z }
         })
         .collect_vec();
 
     let pairs = coords
         .iter()
         .enumerate()
-        .tuple_combinations::<(_, _)>()
-        .map(|pair| {
-            let d = pair.0.1.distance_sq(*pair.1.1);
-            (pair.0.0, pair.1.0, d)
-        })
-        .sorted_by(|p1, p2| p1.2.partial_cmp(&p2.2).unwrap())
-        .map(|p| (p.0, p.1))
+        .tuple_combinations()
+        .map(|((i1, c1), (i2, c2))| ((i1, i2), c1.distance_sq(c2)))
+        .sorted_by(|(_, d1), (_, d2)| d1.partial_cmp(&d2).unwrap())
+        .map(|(ii, _)| ii)
         .collect_vec();
 
     let part1 = part1(&coords, &pairs);
@@ -56,24 +47,24 @@ fn main() {
 fn part1(coords: &[Vec3], pairs: &[(usize, usize)]) -> usize {
     let mut ds = DisjointSet::with_singles(coords.len());
 
-    for pair in pairs.iter().take(1000) {
-        ds.merge(pair.0, pair.1);
+    for &(a, b) in pairs.iter().take(1000) {
+        ds.merge(a, b);
     }
 
-    let mut sizes = ds.all_lens();
-    sizes.sort();
-    sizes.iter().rev().take(3).product()
+    let mut lens = ds.all_lens();
+    lens.sort();
+    lens.iter().rev().take(3).product()
 }
 
 fn part2(coords: &[Vec3], pairs: &[(usize, usize)]) -> usize {
     let mut ds = DisjointSet::with_singles(coords.len());
 
-    for pair in pairs {
-        ds.merge(pair.0, pair.1);
+    for &(a, b) in pairs {
+        ds.merge(a, b);
 
         // Are we now fully connected?
         if ds.len_of(0) == coords.len() {
-            return coords[pair.0].x as usize * coords[pair.1].x as usize;
+            return coords[a].x as usize * coords[b].x as usize;
         }
     }
 

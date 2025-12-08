@@ -74,6 +74,10 @@ pub trait StrExt {
     fn split_once_parse<T: FromStr>(&self, pat: &str) -> (T, T)
     where
         T::Err: Debug;
+
+    fn split_parse_n<const N: usize, T: FromStr>(&self, pat: &str) -> [T; N]
+    where
+        T::Err: Debug;
 }
 
 impl StrExt for &str {
@@ -90,13 +94,25 @@ impl StrExt for &str {
         self.split(pat).map(|s| s.parse::<T>().unwrap())
     }
 
+    fn split_parse_n<const N: usize, T>(&self, pat: &str) -> [T; N]
+    where
+        T: FromStr,
+        T::Err: Debug,
+    {
+        let it = self.split(pat).map(|s| s.parse::<T>().unwrap());
+        match it.collect::<Vec<_>>().try_into() {
+            Ok(arr) => arr,
+            Err(_) => panic!("split {N} times with '{pat}' failed: {self}"),
+        }
+    }
+
     fn split_once_parse<T>(&self, pat: &str) -> (T, T)
     where
         T: FromStr,
         T::Err: Debug,
     {
-        let (a, b) = self.split_once(pat).unwrap();
-        (a.parse().unwrap(), b.parse().unwrap())
+        let it: [T; 2] = self.split_parse_n(pat);
+        it.into()
     }
 }
 
