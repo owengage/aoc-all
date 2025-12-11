@@ -50,6 +50,7 @@ fn main() {
     // of horseshoe shape.
     let part2 = part2(&tiles);
     dbg!(part2);
+    assert_eq!(1624057680, part2);
 }
 
 fn part2(tiles: &[IPoint]) -> isize {
