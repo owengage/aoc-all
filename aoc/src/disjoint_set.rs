@@ -39,7 +39,7 @@ impl DisjointSet {
         }
     }
 
-    /// Insert a new singleton set. Returns the indentity/root of that set.
+    /// Insert a new singleton set. Returns the identity/root of that set.
     pub fn insert_single(&mut self) -> usize {
         self.parents.push(self.parents.len());
         self.ranks.push(0);
