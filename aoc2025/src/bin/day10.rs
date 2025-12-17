@@ -1,8 +1,7 @@
-use std::{collections::VecDeque, usize};
+use std::collections::HashMap;
 
 use aoc::{StrExt, fetch_input, lines};
 use itertools::Itertools;
-use rand::{distr, rng, seq::SliceRandom};
 
 #[derive(Debug)]
 struct Machine {
@@ -11,215 +10,83 @@ struct Machine {
     joltage_reqs: Vec<isize>,
 }
 
-// Insight:
-// Order of pressing the buttons does not matter. My tree has nodes for EVERY
-// order of pressing the buttons, but really it's just the number. Pressing A
-// then B is equivalent to B then A.
-//
-// N buttons (0, 0, 0, 0, ...). Want any given button can only be pressed a
-// maximum number of times max(goal[..])
+// Try parity based solution: https://www.reddit.com/r/adventofcode/comments/1pk87hl/2025_day_10_part_2_bifurcate_your_way_to_victory/
+
 fn main() {
     let input = lines(fetch_input(2025, 10));
-    let input = input
-        .iter()
-        .map(|s| s.split_whitespace().collect_vec())
-        .collect_vec();
-
-    let machines = input
-        .iter()
-        .map(|m| {
-            let [diagram, buttons @ .., jolts] = &m[..] else {
-                panic!()
-            };
-            let diagram = diagram
-                .strip_brackets('[', ']')
-                .unwrap()
-                .chars()
-                .map(|c| c == '#')
-                .collect_vec();
-
-            let buttons = buttons
-                .iter()
-                .map(|s| {
-                    s.strip_brackets('(', ')')
-                        .unwrap()
-                        .split_parse::<usize>(",")
-                        .collect_vec()
-                })
-                .collect_vec();
-
-            let jolts = jolts
-                .strip_brackets('{', '}')
-                .unwrap()
-                .split_parse::<isize>(",")
-                .collect_vec();
-
-            Machine {
-                diagram,
-                buttons,
-                joltage_reqs: jolts,
-            }
-        })
-        .collect_vec();
-
-    // For part 1, pressing a button twice does nothing. It doesn't matter if
-    // you press other buttons in between, it will still toggle a given light
-    // twice and therefore have no overall effect. So at maximum we need to
-    // press a given button once.
-
+    let machines = input.iter().map(|s| parse_machine(&s)).collect_vec();
     let part1 = part1(&machines);
     dbg!(part1);
     assert_eq!(447, part1);
 
     let part2 = part2(&machines);
     dbg!(part2);
+    assert_eq!(18960, part2);
 }
 
-#[derive(Debug)]
-struct Node {
-    joltages: Vec<isize>,
-    presses: usize,
-}
+fn parse_machine(line: &str) -> Machine {
+    let line = line.split_whitespace().collect_vec();
 
-fn part2(machines: &[Machine]) -> usize {
-    let mut count = 0;
-
-    // DFS?
-    for machine in machines {
-        let goal = &machine.joltage_reqs;
-        let mut min_presses = usize::MAX;
-
-        let starts = base_solutions_for_req(
-            machine,
-            &Node {
-                joltages: vec![0; machine.joltage_reqs.len()],
-                presses: 0,
-            },
-            2,
-        );
-
-        for base in starts {
-            let starts = base_solutions_for_req(machine, &base, 7);
-
-            for base in starts {
-                let starts = base_solutions_for_req(machine, &base, 0);
-                let mut q = VecDeque::from_iter(starts);
-
-                while let Some(n) = q.pop_back() {
-                    if n.presses >= min_presses {
-                        continue; // already matched this, no point continuing.
-                    }
-
-                    if n.joltages.iter().zip(goal).any(|(a, g)| a > g) {
-                        // breached our goal.
-                        // println!("Breeched");
-                        continue;
-                    }
-
-                    // println!("Node {}: {:?}", n.presses, n.joltages);
-
-                    // have we acheived the goal?
-                    if &n.joltages == goal {
-                        println!("Achieved goal {}", n.presses);
-                        panic!();
-                        min_presses = min_presses.min(n.presses);
-                        continue;
-                    }
-
-                    // for each possible button press.
-                    for button in &machine.buttons[2..] {
-                        let mut new = Node {
-                            joltages: n.joltages.clone(),
-                            presses: n.presses + 1,
-                        };
-                        for &i in button {
-                            new.joltages[i] += 1;
-                        }
-                        q.push_back(new);
-                    }
-                }
-            }
-        }
-
-        count += min_presses;
-        println!("Machine done, {} presses", min_presses);
-    }
-
-    count
-}
-
-// From the given start node, find all starting solutions for the given requirement.
-// Idea here is to try and cut down on the depth of the search tree.
-fn base_solutions_for_req(machine: &Machine, start: &Node, req_i: usize) -> Vec<Node> {
-    let mut nodes = vec![];
-
-    let buttons = machine
-        .buttons
-        .iter()
-        .filter(|b| b.contains(&req_i))
+    let [diagram, buttons @ .., jolts] = &line[..] else {
+        panic!()
+    };
+    let diagram = diagram
+        .strip_brackets('[', ']')
+        .unwrap()
+        .chars()
+        .map(|c| c == '#')
         .collect_vec();
 
-    let overall_goal = machine.joltage_reqs[req_i];
-    let presses_needed = overall_goal - start.joltages[req_i];
-    if presses_needed < 0 {
-        panic!();
+    let buttons = buttons
+        .iter()
+        .map(|s| {
+            s.strip_brackets('(', ')')
+                .unwrap()
+                .split_parse::<usize>(",")
+                .collect_vec()
+        })
+        .collect_vec();
+
+    let jolts = jolts
+        .strip_brackets('{', '}')
+        .unwrap()
+        .split_parse::<isize>(",")
+        .collect_vec();
+
+    Machine {
+        diagram,
+        buttons,
+        joltage_reqs: jolts,
+    }
+}
+
+#[derive(Debug, PartialEq, Eq, PartialOrd, Ord, Hash)]
+struct Node {
+    joltages_left: Vec<isize>,
+    buttons: Vec<Vec<usize>>,
+    presses: isize,
+}
+
+fn part2(machines: &[Machine]) -> isize {
+    let mut total_presses = 0;
+
+    for machine in machines {
+        let sol = solve_machine(machine);
+        assert_ne!(isize::MAX, sol);
+        total_presses += sol;
     }
 
-    for dist in distribute(presses_needed as usize, buttons.len()) {
-        let mut candidate = Node {
-            joltages: start.joltages.clone(),
-            presses: start.presses + presses_needed as usize,
-        };
+    total_presses
+}
 
-        for (num, &button) in dist.iter().zip(&buttons) {
-            for jolti in button {
-                candidate.joltages[*jolti] += *num as isize;
-            }
-        }
+fn solve_machine(machine: &Machine) -> isize {
+    let node = Node {
+        joltages_left: machine.joltage_reqs.clone(),
+        buttons: machine.buttons.clone(),
+        presses: 0,
+    };
 
-        if candidate
-            .joltages
-            .iter()
-            .zip(&machine.joltage_reqs)
-            .any(|(a, g)| *a > *g)
-        {
-            // breached our goal.
-            // println!("Breeched");
-            continue;
-        }
-
-        println!("Candidate: {:?}", candidate);
-        nodes.push(candidate);
-        // if n.joltages[req_i] > machine.joltage_reqs[req_i] {
-        //     // breached our goal.
-        //     // println!("Breeched");
-        //     continue;
-        // }
-
-        // // have we acheived the goal?
-        // if n.joltages[req_i] == machine.joltage_reqs[req_i] {
-        //     // println!("Achieved goal");
-        //     sub_sols += 1;
-        //     if sub_sols % 10000 == 0 {
-        //         println!("{sub_sols} solutons... {}, {:?}", n.presses, n.joltages);
-        //     }
-        //     continue;
-        // }
-
-        // // for each possible button press.
-        // for &button in &buttons {
-        //     let mut new = Node {
-        //         joltages: n.joltages.clone(),
-        //         presses: n.presses + 1,
-        //     };
-        //     for i in button {
-        //         new.joltages[*i] += 1;
-        //     }
-        //     q.push_back(new);
-        // }
-    }
-
-    nodes
+    parity_solve(&node)
 }
 
 fn part1(machines: &[Machine]) -> usize {
@@ -252,6 +119,84 @@ fn part1(machines: &[Machine]) -> usize {
     count
 }
 
+fn parity_solve(machine: &Node) -> isize {
+    let ns = solve_for_even_parity(machine);
+    let mut min_presses = isize::MAX;
+    let mut cache = HashMap::new();
+
+    if machine.joltages_left.iter().all(|j| *j == 0) {
+        return 0;
+    }
+
+    for (presses, mut n) in ns {
+        // Half the now even joltage requirements.
+        n.joltages_left.iter_mut().for_each(|j| *j /= 2);
+
+        let subsolve = if cache.contains_key(&n) {
+            *cache.get(&n).unwrap()
+        } else {
+            let sol = parity_solve(&n);
+            cache.insert(n, sol);
+            sol
+        };
+
+        if subsolve == isize::MAX {
+            continue;
+        }
+
+        let n_min = presses + subsolve * 2;
+        min_presses = min_presses.min(n_min);
+    }
+
+    min_presses
+}
+
+// Return all solutions that convert to even parity.
+fn solve_for_even_parity(machine: &Node) -> Vec<(isize, Node)> {
+    let bits_end = 1usize << machine.buttons.len();
+    let mut nodes = vec![];
+
+    for bits in 0..bits_end {
+        let mut lights = 0;
+        let mut new_joltage = machine.joltages_left.clone();
+
+        for buttoni in 0..machine.buttons.len() {
+            // press the button?
+            let press = 0 != (bits & (1usize << buttoni));
+            if press {
+                lights ^= buttons_bit_pattern(&machine.buttons[buttoni]);
+                for &i in &machine.buttons[buttoni] {
+                    new_joltage[i] -= 1;
+                }
+            }
+        }
+
+        if new_joltage.iter().any(|j| *j < 0) {
+            continue;
+        }
+
+        let diagram = machine
+            .joltages_left
+            .iter()
+            .map(|j| (*j % 2) != 0)
+            .collect_vec();
+
+        if lights == diagram_bit_pattern(&diagram) {
+            let presses = bits.count_ones() as isize;
+            nodes.push((
+                presses,
+                Node {
+                    joltages_left: new_joltage,
+                    buttons: machine.buttons.clone(),
+                    presses: 0,
+                },
+            ));
+        }
+    }
+
+    nodes
+}
+
 fn diagram_bit_pattern(diagram: &[bool]) -> usize {
     let mut pat = 0;
     for i in 0..diagram.len() {
@@ -269,31 +214,104 @@ fn buttons_bit_pattern(buttons: &[usize]) -> usize {
     pat
 }
 
-/// Oh my god.
-fn distribute(n: usize, over: usize) -> Vec<Vec<usize>> {
-    if over == 1 {
-        vec![vec![n]]
-    } else {
-        let mut vs = vec![];
-        for i in 0..n {
-            for end in distribute(n - i, over - 1) {
-                let mut v = vec![i];
-                v.extend_from_slice(&end);
-                vs.push(v);
-            }
-        }
-
-        vs
-    }
-}
-
 #[cfg(test)]
 mod test {
-    use crate::distribute;
+    use crate::{Machine, Node, parity_solve, parse_machine, solve_for_even_parity, solve_machine};
 
     #[test]
-    fn test_divider() {
-        let divs = distribute(100, 5);
-        println!("{:?}", divs[2421275]);
+    fn parity() {
+        let m = parse_machine("[....] (3) (1,3) (2) (2,3) (0,2) (0,1) {3,5,4,7}");
+        let n = Node {
+            joltages_left: m.joltage_reqs,
+            buttons: m.buttons,
+            presses: 0,
+        };
+
+        println!("{:#?}", solve_for_even_parity(&n));
+
+        dbg!(parity_solve(&n));
+    }
+
+    #[test]
+    fn solve_m() {
+        let m = Machine {
+            diagram: vec![],
+            buttons: vec![vec![0]],
+            joltage_reqs: vec![100],
+        };
+
+        assert_eq!(100, solve_machine(&m));
+    }
+
+    #[test]
+    fn solve_m2() {
+        let m = Machine {
+            diagram: vec![],
+            buttons: vec![vec![0]],
+            joltage_reqs: vec![100, 1],
+        };
+
+        assert_eq!(isize::MAX, solve_machine(&m));
+    }
+
+    #[test]
+    fn solve_m3() {
+        assert_eq!(
+            101,
+            solve_machine(&Machine {
+                diagram: vec![],
+                buttons: vec![vec![0], vec![1]],
+                joltage_reqs: vec![100, 1],
+            })
+        );
+
+        assert_eq!(
+            100,
+            solve_machine(&Machine {
+                diagram: vec![],
+                buttons: vec![vec![0, 1], vec![1]],
+                joltage_reqs: vec![100, 100],
+            })
+        );
+
+        assert_eq!(
+            100,
+            solve_machine(&Machine {
+                diagram: vec![],
+                buttons: vec![vec![1], vec![0, 1]],
+                joltage_reqs: vec![100, 100],
+            })
+        );
+
+        // [...#] (0,3) (0,1,2) (1) (1,3) (1,2) {23,176,26,19}
+        assert_eq!(
+            176,
+            solve_machine(&Machine {
+                diagram: vec![],
+                buttons: vec![vec![0, 3], vec![0, 1, 2], vec![1], vec![1, 3], vec![1, 2],],
+                joltage_reqs: vec![23, 176, 26, 19],
+            })
+        );
+
+        assert_eq!(
+            12,
+            solve_machine(&parse_machine(
+                "[...#.] (0,2,3,4) (2,3) (0,4) (0,1,2) (1,2,3,4) {7,5,12,7,2}"
+            ))
+        );
+        assert_eq!(
+            11,
+            solve_machine(&parse_machine(
+                "[.###.#] (0,1,2,3,4) (0,3,4) (0,1,2,4,5) (1,2) {10,11,11,5,10,5}"
+            ))
+        );
+
+        // from input
+        assert_eq!(
+            170, // maybe?
+            solve_machine(&parse_machine(
+                "[####.] (0,3,4) (1,2) (1,2,4) {148,22,22,148,160}"
+            ))
+        );
     }
 }
